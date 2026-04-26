@@ -812,6 +812,7 @@
         <button class="mode-tab active" data-mode="listen">▶ Послушать</button>
         <button class="mode-tab" data-mode="rh">Правая рука</button>
         <button class="mode-tab" data-mode="lh">Левая рука</button>
+        <button class="mode-tab" data-mode="accomp">🎹 Аккомпанемент</button>
         <button class="mode-tab" data-mode="both">Двумя руками</button>
       </div>
       <div class="sheet-container">
@@ -977,14 +978,16 @@ const PIECES = [
     timeSig: '4/4',
     tempo: 100,
     measures: [
+      // Куплет: Jingle bells, jingle bells, jingle all the way
       { rh: [['e/4','q'],['e/4','q'],['e/4','h']], lh: [['c/3','w']] },
       { rh: [['e/4','q'],['e/4','q'],['e/4','h']], lh: [['c/3','w']] },
       { rh: [['e/4','q'],['g/4','q'],['c/4','q'],['d/4','q']], lh: [['c/3','w']] },
-      { rh: [['e/4','w']], lh: [['g/2','h'],['c/3','h']] },
+      { rh: [['e/4','w']], lh: [['c/3','w']] },
+      // Oh what fun it is to ride in a one-horse open sleigh
       { rh: [['f/4','q'],['f/4','q'],['f/4','q'],['f/4','q']], lh: [['f/2','w']] },
-      { rh: [['f/4','q'],['e/4','q'],['e/4','q'],['e/4','q']], lh: [['c/3','w']] },
+      { rh: [['f/4','q'],['e/4','q'],['e/4','q'],['e/4','8'],['e/4','8']], lh: [['c/3','w']] },
       { rh: [['e/4','q'],['d/4','q'],['d/4','q'],['e/4','q']], lh: [['g/2','w']] },
-      { rh: [['d/4','h'],['g/4','h']], lh: [['g/2','h'],['c/3','h']] },
+      { rh: [['d/4','h'],['g/4','h']], lh: [['c/3','w']] },
     ]
   },
   {
@@ -1712,11 +1715,15 @@ function setMode(mode) {
   } else if (mode === 'lh') {
     ab.textContent = state.micGranted ? '🎤 Тренировать (левая)' : '🎤 Включить микрофон';
     ab.className = 'primary-btn coral';
-    document.getElementById('practice-feedback').textContent = 'Сыграй левой рукой. Я слежу за нотами.';
-  } else if (mode === 'both') {
-    ab.textContent = '🎵 Запустить метроном';
+    document.getElementById('practice-feedback').textContent = 'Сыграй левой рукой. Слежу за низкими нотами (микрофон может иногда ошибаться на басах).';
+  } else if (mode === 'accomp') {
+    ab.textContent = '🎵 Запустить аккомпанемент';
     ab.className = 'primary-btn sage';
-    document.getElementById('practice-feedback').textContent = 'Играй двумя руками — я задам темп метрономом.';
+    document.getElementById('practice-feedback').textContent = 'Я буду играть левую руку, а ты — правую под мой аккомпанемент.';
+  } else if (mode === 'both') {
+    ab.textContent = '🎵 Метроном с курсором';
+    ab.className = 'primary-btn sage';
+    document.getElementById('practice-feedback').textContent = 'Курсор покажет место в нотах. Играй двумя руками под метроном.';
   }
   renderPieceSheet(state.currentPiece);
 }
@@ -1747,9 +1754,12 @@ function onActionBtn() {
   } else if (state.currentMode === 'rh' || state.currentMode === 'lh') {
     if (state.isPracticing) stopPiecePractice();
     else startPiecePractice();
+  } else if (state.currentMode === 'accomp') {
+    if (state.isPlayingBack) stopPiecePlayback();
+    else playAccompaniment();
   } else if (state.currentMode === 'both') {
     if (state.isPlayingBack) stopPiecePlayback();
-    else playMetronomeOnly();
+    else playBothHandsCursor();
   }
 }
 
@@ -1849,9 +1859,23 @@ function stopPiecePlayback() {
   state.playbackTimers = [];
   if (state.currentScreen === 'piece-detail') {
     renderPieceSheet(state.currentPiece);
-    document.getElementById('action-btn').textContent = state.currentMode === 'listen' ? '▶ Послушать' : (state.currentMode === 'both' ? '🎵 Запустить метроном' : '🎤 Тренировать');
-    document.getElementById('practice-feedback').textContent = state.currentMode === 'listen' ? 'Нажми «Послушать», чтобы повторить.' : '';
-    document.getElementById('practice-feedback').className = 'feedback-line';
+    const ab = document.getElementById('action-btn');
+    const fb = document.getElementById('practice-feedback');
+    const m = state.currentMode;
+    if (m === 'listen') {
+      ab.textContent = '▶ Послушать';
+      fb.textContent = 'Нажми «Послушать», чтобы повторить.';
+    } else if (m === 'accomp') {
+      ab.textContent = '🎵 Запустить аккомпанемент';
+      fb.textContent = 'Я буду играть левую руку, а ты — правую под мой аккомпанемент.';
+    } else if (m === 'both') {
+      ab.textContent = '🎵 Метроном с курсором';
+      fb.textContent = 'Курсор покажет место в нотах. Играй двумя руками под метроном.';
+    } else {
+      ab.textContent = '🎤 Тренировать';
+      fb.textContent = '';
+    }
+    fb.className = 'feedback-line';
   }
 }
 
@@ -1888,6 +1912,178 @@ function playMetronomeOnly() {
   }
 
   const endTid = setTimeout(() => stopPiecePlayback(), totalBeats * secPerBeat * 1000 + 200);
+  state.playbackTimers.push(endTid);
+}
+
+// === Accompaniment mode: app plays LH, child plays RH on top ===
+function playAccompaniment() {
+  const piece = state.currentPiece;
+  if (!piece) return;
+  state.isPlayingBack = true;
+  document.getElementById('action-btn').textContent = '⏹ Остановить';
+  document.getElementById('practice-feedback').className = 'feedback-line success';
+  document.getElementById('practice-feedback').textContent = '🎹 Я играю левую руку — играй правую сверху!';
+
+  ensureAudio();
+  const bpm = piece.tempo * (state.pieceTempoPct / 100);
+  const secPerBeat = 60 / bpm;
+  const { num: beatsPerMeasure } = getBeatsPerMeasure(piece.timeSig);
+
+  state.playbackTimers = [];
+
+  // Count-in: 4 metronome clicks before starting
+  const ctx = state.audioContext;
+  for (let b = 0; b < beatsPerMeasure; b++) {
+    const t0 = ctx.currentTime + b * secPerBeat;
+    const o = ctx.createOscillator();
+    o.type = 'square';
+    o.frequency.value = b === 0 ? 1400 : 900;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(0.15, t0 + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.05);
+    o.connect(g).connect(ctx.destination);
+    o.start(t0);
+    o.stop(t0 + 0.06);
+  }
+
+  // Schedule LH notes after count-in
+  const offsetSec = beatsPerMeasure * secPerBeat;
+  let lhTime = offsetSec;
+  let totalSec = offsetSec;
+
+  piece.measures.forEach((m, mi) => {
+    let tl = lhTime;
+    m.lh.forEach(spec => {
+      const beats = getDurationBeats(spec);
+      const keys = Array.isArray(spec[0]) ? spec[0] : [spec[0]];
+      keys.forEach(k => {
+        playMidi(midiFromKey(k), beats * secPerBeat * 0.95, tl, 0.85);
+      });
+      tl += beats * secPerBeat;
+    });
+    lhTime = tl;
+    if (tl > totalSec) totalSec = tl;
+    // Light metronome tick on each beat too (so child hears the pulse)
+    for (let b = 0; b < beatsPerMeasure; b++) {
+      const tickTime = ctx.currentTime + offsetSec + (mi * beatsPerMeasure + b) * secPerBeat;
+      const isDownbeat = b === 0;
+      const o = ctx.createOscillator();
+      o.type = 'square';
+      o.frequency.value = isDownbeat ? 1200 : 800;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, tickTime);
+      g.gain.linearRampToValueAtTime(isDownbeat ? 0.05 : 0.025, tickTime + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.001, tickTime + 0.04);
+      o.connect(g).connect(ctx.destination);
+      o.start(tickTime);
+      o.stop(tickTime + 0.05);
+    }
+  });
+
+  // Visual cursor — highlight RH note that child should be playing
+  let absRH = 0;
+  let elapsedSec = offsetSec;
+  piece.measures.forEach(m => {
+    let t = elapsedSec;
+    m.rh.forEach((spec, i) => {
+      const beats = getDurationBeats(spec);
+      const idx = absRH;
+      const tid = setTimeout(() => {
+        renderPieceSheet(piece, idx, -1);
+      }, t * 1000);
+      state.playbackTimers.push(tid);
+      t += beats * secPerBeat;
+      absRH++;
+    });
+    elapsedSec = t;
+  });
+
+  const endTid = setTimeout(() => stopPiecePlayback(), totalSec * 1000 + 800);
+  state.playbackTimers.push(endTid);
+}
+
+// === Both hands mode: visual cursor + metronome, no audio ===
+function playBothHandsCursor() {
+  const piece = state.currentPiece;
+  if (!piece) return;
+  state.isPlayingBack = true;
+  document.getElementById('action-btn').textContent = '⏹ Стоп';
+  document.getElementById('practice-feedback').className = 'feedback-line';
+  document.getElementById('practice-feedback').textContent = '👀 Курсор показывает, где играть. Метроном задаёт темп.';
+
+  const bpm = piece.tempo * (state.pieceTempoPct / 100);
+  const secPerBeat = 60 / bpm;
+  const { num: beatsPerMeasure } = getBeatsPerMeasure(piece.timeSig);
+  const totalBeats = piece.measures.length * beatsPerMeasure;
+
+  ensureAudio();
+  const ctx = state.audioContext;
+  state.playbackTimers = [];
+
+  // Count-in (one measure of metronome before starting)
+  for (let b = 0; b < beatsPerMeasure; b++) {
+    const t0 = ctx.currentTime + b * secPerBeat;
+    const o = ctx.createOscillator();
+    o.type = 'square';
+    o.frequency.value = b === 0 ? 1400 : 900;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(0.15, t0 + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.05);
+    o.connect(g).connect(ctx.destination);
+    o.start(t0);
+    o.stop(t0 + 0.06);
+  }
+
+  const offsetSec = beatsPerMeasure * secPerBeat;
+
+  // Main metronome
+  for (let b = 0; b < totalBeats; b++) {
+    const t0 = ctx.currentTime + offsetSec + b * secPerBeat;
+    const isDownbeat = (b % beatsPerMeasure) === 0;
+    const o = ctx.createOscillator();
+    o.type = 'square';
+    o.frequency.value = isDownbeat ? 1200 : 800;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(isDownbeat ? 0.10 : 0.06, t0 + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.05);
+    o.connect(g).connect(ctx.destination);
+    o.start(t0);
+    o.stop(t0 + 0.06);
+  }
+
+  // Visual cursor — advance through RH and LH together
+  let absRH = 0;
+  let absLH = 0;
+  let rhTime = offsetSec;
+  let lhTime = offsetSec;
+
+  piece.measures.forEach(m => {
+    let t = rhTime;
+    m.rh.forEach(spec => {
+      const beats = getDurationBeats(spec);
+      const rhIdx = absRH;
+      const lhIdx = absLH; // approximate sync
+      const tid = setTimeout(() => {
+        renderPieceSheet(piece, rhIdx, lhIdx);
+      }, t * 1000);
+      state.playbackTimers.push(tid);
+      t += beats * secPerBeat;
+      absRH++;
+    });
+    rhTime = t;
+
+    let tl = lhTime;
+    m.lh.forEach(() => {
+      tl += getDurationBeats(m.lh[0]) * secPerBeat;
+      absLH++;
+    });
+    lhTime = tl;
+  });
+
+  const endTid = setTimeout(() => stopPiecePlayback(), (offsetSec + totalBeats * secPerBeat) * 1000 + 500);
   state.playbackTimers.push(endTid);
 }
 
