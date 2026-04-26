@@ -751,7 +751,18 @@
     line-height: 1.4;
   }
 
-  /* sheet music note coloring */
+  /* Version badge - confirms fresh file loaded */
+  .version-badge {
+    position: fixed;
+    bottom: 6px;
+    right: 8px;
+    font-size: 10px;
+    color: rgba(107, 61, 92, 0.4);
+    pointer-events: none;
+    z-index: 1000;
+    font-family: monospace;
+  }
+
   .vf-stavenote.cursor-current path,
   .vf-stavenote.cursor-current .vf-notehead path {
     fill: var(--coral) !important;
@@ -908,6 +919,7 @@
   </main>
 </div>
 
+<div class="version-badge">v4.0 — separate playback context</div>
 <!-- Permission overlay -->
 <div class="perm-overlay" id="perm-overlay">
   <div class="perm-card">
@@ -1107,6 +1119,11 @@ const state = {
 
   // Tracks audio oscillators scheduled in Web Audio so we can stop them on user request
   scheduledOscs: [],
+  // Master gain for piece playback — acts as a "main volume tap" we can shut off instantly
+  playbackGain: null,
+  // SEPARATE audio context just for piece playback. Closing it = total audio kill switch,
+  // leaves microphone (on main context) untouched.
+  playbackContext: null,
 
   // scales
   currentScale: null,
@@ -1214,6 +1231,32 @@ function ensureAudio() {
   return state.audioContext;
 }
 
+// Create a fresh DEDICATED AudioContext for piece playback.
+// All notes/metronome ticks live in this context — closing it on stop = bulletproof kill.
+// Microphone uses the main state.audioContext, which stays alive separately.
+function ensurePlaybackContext() {
+  // Close old playback context completely if any (guarantees all sounds stop)
+  if (state.playbackContext) {
+    try { state.playbackContext.close(); } catch(e) {}
+  }
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  state.playbackContext = new Ctx();
+  // Master gain inside this dedicated context
+  const g = state.playbackContext.createGain();
+  g.gain.value = 1.0;
+  g.connect(state.playbackContext.destination);
+  state.playbackGain = g;
+  return state.playbackContext;
+}
+
+function getPlaybackContext() {
+  return state.playbackContext;
+}
+
+function getPlaybackDestination() {
+  return state.playbackGain;
+}
+
 async function requestMic() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -1243,16 +1286,19 @@ function closePerm(skipped) {
 
 // Play a single note (piano-ish synth)
 function playMidi(midi, durationSec = 0.5, when = 0, gainBoost = 1) {
-  const ctx = ensureAudio();
+  // Use dedicated playback context if a playback session is in progress,
+  // otherwise the main context (for one-off key taps, scale demos, etc.)
+  const ctx = state.playbackContext || ensureAudio();
   const t0 = ctx.currentTime + when;
   const freq = freqFromMidi(midi);
+  const dest = state.playbackContext ? state.playbackGain : ctx.destination;
 
   // Layered oscillators for richer tone
   const gain = ctx.createGain();
   gain.gain.setValueAtTime(0, t0);
   gain.gain.linearRampToValueAtTime(0.28 * gainBoost, t0 + 0.005);
   gain.gain.exponentialRampToValueAtTime(0.001, t0 + durationSec);
-  gain.connect(ctx.destination);
+  gain.connect(dest);
 
   const o1 = ctx.createOscillator();
   o1.type = 'triangle';
@@ -1260,20 +1306,20 @@ function playMidi(midi, durationSec = 0.5, when = 0, gainBoost = 1) {
   o1.connect(gain);
   o1.start(t0);
   o1.stop(t0 + durationSec + 0.05);
-  state.scheduledOscs.push(o1);
 
   // overtone for piano feel
-  const o2 = ctx.createOscillator();
-  o2.type = 'sine';
-  o2.frequency.value = freq * 2;
   const g2 = ctx.createGain();
   g2.gain.setValueAtTime(0, t0);
   g2.gain.linearRampToValueAtTime(0.06 * gainBoost, t0 + 0.005);
   g2.gain.exponentialRampToValueAtTime(0.001, t0 + durationSec * 0.7);
-  o2.connect(g2).connect(ctx.destination);
+  g2.connect(dest);
+
+  const o2 = ctx.createOscillator();
+  o2.type = 'sine';
+  o2.frequency.value = freq * 2;
+  o2.connect(g2);
   o2.start(t0);
   o2.stop(t0 + durationSec + 0.05);
-  state.scheduledOscs.push(o2);
 
   return { stop: () => { try { o1.stop(); o2.stop(); } catch(e){} } };
 }
@@ -1834,6 +1880,7 @@ function playPiecePlayback() {
   document.getElementById('practice-feedback').textContent = 'Играю...';
 
   ensureAudio();
+  ensurePlaybackContext();
   const { events, totalSec } = buildPieceTimeline(piece);
 
   // schedule cursor advances based on RH events (visual)
@@ -1860,15 +1907,20 @@ function playPiecePlayback() {
 
 function stopPiecePlayback() {
   state.isPlayingBack = false;
+  console.log('[stop] killing playback context');
   // Cancel visual cursor timers
   state.playbackTimers.forEach(t => clearTimeout(t));
   state.playbackTimers = [];
-  // Stop all scheduled audio oscillators (this is the critical part:
-  // Web Audio events are queued ahead of time and don't respect setTimeout)
-  state.scheduledOscs.forEach(osc => {
-    try { osc.stop(); } catch(e) { /* already stopped — fine */ }
-    try { osc.disconnect(); } catch(e) {}
-  });
+
+  // NUCLEAR OPTION: close the entire dedicated playback AudioContext.
+  // This guarantees every queued sound, every oscillator, every scheduled event
+  // is killed instantly — there's no audio graph left to play through.
+  // The microphone uses a SEPARATE context, so it stays alive.
+  if (state.playbackContext) {
+    try { state.playbackContext.close(); } catch(e) {}
+    state.playbackContext = null;
+    state.playbackGain = null;
+  }
   state.scheduledOscs = [];
 
   if (state.currentScreen === 'piece-detail') {
@@ -1939,6 +1991,9 @@ function playAccompaniment() {
   document.getElementById('practice-feedback').textContent = '🎹 Я играю левую руку — играй правую сверху!';
 
   ensureAudio();
+  ensurePlaybackContext();
+  const ctx = state.playbackContext;
+  const dest = state.playbackGain;
   const bpm = piece.tempo * (state.pieceTempoPct / 100);
   const secPerBeat = 60 / bpm;
   const { num: beatsPerMeasure } = getBeatsPerMeasure(piece.timeSig);
@@ -1946,7 +2001,6 @@ function playAccompaniment() {
   state.playbackTimers = [];
 
   // Count-in: 4 metronome clicks before starting
-  const ctx = state.audioContext;
   for (let b = 0; b < beatsPerMeasure; b++) {
     const t0 = ctx.currentTime + b * secPerBeat;
     const o = ctx.createOscillator();
@@ -1956,7 +2010,7 @@ function playAccompaniment() {
     g.gain.setValueAtTime(0, t0);
     g.gain.linearRampToValueAtTime(0.15, t0 + 0.005);
     g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.05);
-    o.connect(g).connect(ctx.destination);
+    o.connect(g).connect(dest);
     o.start(t0);
     o.stop(t0 + 0.06);
     state.scheduledOscs.push(o);
@@ -1990,7 +2044,7 @@ function playAccompaniment() {
       g.gain.setValueAtTime(0, tickTime);
       g.gain.linearRampToValueAtTime(isDownbeat ? 0.05 : 0.025, tickTime + 0.005);
       g.gain.exponentialRampToValueAtTime(0.001, tickTime + 0.04);
-      o.connect(g).connect(ctx.destination);
+      o.connect(g).connect(dest);
       o.start(tickTime);
       o.stop(tickTime + 0.05);
       state.scheduledOscs.push(o);
@@ -2034,7 +2088,9 @@ function playBothHandsCursor() {
   const totalBeats = piece.measures.length * beatsPerMeasure;
 
   ensureAudio();
-  const ctx = state.audioContext;
+  ensurePlaybackContext();
+  const ctx = state.playbackContext;
+  const dest = state.playbackGain;
   state.playbackTimers = [];
 
   // Count-in (one measure of metronome before starting)
@@ -2047,7 +2103,7 @@ function playBothHandsCursor() {
     g.gain.setValueAtTime(0, t0);
     g.gain.linearRampToValueAtTime(0.15, t0 + 0.005);
     g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.05);
-    o.connect(g).connect(ctx.destination);
+    o.connect(g).connect(dest);
     o.start(t0);
     o.stop(t0 + 0.06);
     state.scheduledOscs.push(o);
@@ -2066,7 +2122,7 @@ function playBothHandsCursor() {
     g.gain.setValueAtTime(0, t0);
     g.gain.linearRampToValueAtTime(isDownbeat ? 0.10 : 0.06, t0 + 0.005);
     g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.05);
-    o.connect(g).connect(ctx.destination);
+    o.connect(g).connect(dest);
     o.start(t0);
     o.stop(t0 + 0.06);
     state.scheduledOscs.push(o);
