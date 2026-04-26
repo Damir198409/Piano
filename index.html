@@ -404,6 +404,90 @@
     margin-top: 4px;
   }
 
+  /* Big visible mic feedback panel */
+  .mic-panel {
+    margin-top: 14px;
+    background: linear-gradient(135deg, #FFFCF4 0%, #F5EBD0 100%);
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: inset 0 0 0 1px rgba(107, 61, 92, 0.1);
+  }
+  .mic-panel-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .mic-panel-label {
+    font-size: 0.85rem;
+    color: var(--plum-deep);
+    font-weight: 600;
+    opacity: 0.7;
+  }
+  .mic-panel-status {
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 100px;
+    background: var(--mist);
+    color: var(--plum-deep);
+  }
+  .mic-panel-status.live {
+    background: var(--coral);
+    color: white;
+    animation: mic-pulse 1.4s infinite;
+  }
+  .vol-meter {
+    height: 14px;
+    background: var(--mist);
+    border-radius: 100px;
+    overflow: hidden;
+    margin-bottom: 12px;
+    position: relative;
+  }
+  .vol-meter-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--sage) 0%, var(--gold) 50%, var(--coral) 100%);
+    border-radius: 100px;
+    transition: width 0.07s linear;
+  }
+  .heard-display {
+    text-align: center;
+  }
+  .heard-label {
+    font-size: 0.78rem;
+    color: var(--plum-deep);
+    opacity: 0.6;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .heard-note {
+    font-family: 'Fraunces', serif;
+    font-size: 2.2rem;
+    color: var(--plum);
+    font-weight: 600;
+    line-height: 1.1;
+    transition: color 0.15s ease;
+    letter-spacing: -0.02em;
+  }
+  .heard-note.match {
+    color: var(--sage-deep);
+  }
+  .heard-note.mismatch {
+    color: var(--coral-deep);
+  }
+  .heard-note.silent {
+    color: rgba(45, 36, 36, 0.25);
+  }
+  .heard-hz {
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    color: rgba(45, 36, 36, 0.45);
+    margin-top: 2px;
+    min-height: 14px;
+  }
+
   /* === BUTTONS === */
   .primary-btn {
     background: var(--plum);
@@ -743,7 +827,20 @@
           <div class="mic-indicator" id="mic-indicator" title="Микрофон">🎤</div>
         </div>
         <div class="feedback-line" id="practice-feedback">Выбери режим занятия выше</div>
-        <div class="pitch-monitor" id="pitch-monitor"></div>
+        <div class="mic-panel" id="mic-panel">
+          <div class="mic-panel-row">
+            <span class="mic-panel-label">Микрофон:</span>
+            <span class="mic-panel-status" id="mic-panel-status">выключен</span>
+          </div>
+          <div class="vol-meter">
+            <div class="vol-meter-fill" id="vol-meter-fill"></div>
+          </div>
+          <div class="heard-display">
+            <div class="heard-label">Слышу ноту:</div>
+            <div class="heard-note" id="heard-note">—</div>
+            <div class="heard-hz" id="heard-hz"></div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -1071,7 +1168,7 @@ function showScreen(id, addToStack = true) {
 function navBack() {
   // Stop any active practice
   stopPiecePlayback();
-  stopPitchDetection();
+  stopMicMonitoring();
   state.isPracticing = false;
   state.scalePracticing = false;
 
@@ -1181,7 +1278,9 @@ function autoCorrelate(buf, sampleRate) {
   let rms = 0;
   for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
   rms = Math.sqrt(rms / SIZE);
-  if (rms < 0.012) return -1;
+  // expose rms so caller can show volume meter
+  window.__lastRms = rms;
+  if (rms < 0.003) return -1;
 
   let r1 = 0, r2 = SIZE - 1, thres = 0.2;
   for (let i = 0; i < SIZE / 2; i++)
@@ -1249,6 +1348,115 @@ function stopPitchDetection() {
   state.noteStableTime = 0;
   const mi = document.getElementById('mic-indicator');
   if (mi) mi.classList.remove('on');
+}
+
+// === Continuous mic monitoring ===
+// Runs whenever a practice screen is open, so the user always sees what mic hears.
+async function startMicMonitoring() {
+  // Request mic if not granted
+  if (!state.micGranted) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+      });
+      state.micStream = stream;
+      const ctx = ensureAudio();
+      const src = ctx.createMediaStreamSource(stream);
+      state.analyser = ctx.createAnalyser();
+      state.analyser.fftSize = 2048;
+      src.connect(state.analyser);
+      state.pitchBuffer = new Float32Array(state.analyser.fftSize);
+      state.micGranted = true;
+    } catch (e) {
+      const statusEl = document.getElementById('mic-panel-status');
+      if (statusEl) {
+        statusEl.textContent = 'нет доступа';
+        statusEl.style.background = 'var(--coral)';
+        statusEl.style.color = 'white';
+      }
+      console.error('Mic monitoring error:', e);
+      return;
+    }
+  }
+  // Update UI: mic is live
+  const statusEl = document.getElementById('mic-panel-status');
+  if (statusEl) {
+    statusEl.textContent = 'слушаю';
+    statusEl.classList.add('live');
+  }
+  const micInd = document.getElementById('mic-indicator');
+  if (micInd) micInd.classList.add('on');
+
+  // Cancel any existing detection loop and start fresh monitoring
+  if (state.rafPitchId) cancelAnimationFrame(state.rafPitchId);
+  monitorTick();
+}
+
+function monitorTick() {
+  if (!state.analyser) return;
+  state.analyser.getFloatTimeDomainData(state.pitchBuffer);
+  const hz = autoCorrelate(state.pitchBuffer, state.audioContext.sampleRate);
+  const rms = window.__lastRms || 0;
+
+  // Volume meter (scale rms to 0..100%)
+  const meterEl = document.getElementById('vol-meter-fill');
+  if (meterEl) {
+    const pct = Math.min(100, rms * 600);
+    meterEl.style.width = pct + '%';
+  }
+
+  const heardEl = document.getElementById('heard-note');
+  const hzEl = document.getElementById('heard-hz');
+
+  if (hz > 50 && hz < 2500) {
+    const midi = midiFromHz(hz);
+    const n = midiToName(midi);
+    const noteName = NOTE_RU_CAP[n.letter];
+    if (heardEl) {
+      heardEl.textContent = noteName;
+      heardEl.className = 'heard-note';
+      // If practicing, color based on match
+      if (state.isPracticing && state.expectedSequence.length) {
+        const expected = state.expectedSequence[state.cursorIdx];
+        if (expected) {
+          if ((midi % 12) === (expected.midi % 12)) {
+            heardEl.classList.add('match');
+          } else {
+            heardEl.classList.add('mismatch');
+          }
+        }
+      }
+    }
+    if (hzEl) hzEl.textContent = hz.toFixed(0) + ' Гц';
+
+    // Drive the practice logic too
+    if (state.isPracticing) handlePiecePitch(midi, hz);
+    if (state.scalePracticing) handleScalePitch(midi, hz);
+  } else {
+    if (heardEl) {
+      heardEl.textContent = rms < 0.003 ? '...' : '?';
+      heardEl.className = 'heard-note silent';
+    }
+    if (hzEl) hzEl.textContent = '';
+    state.lastNoteMatch = null;
+    state.noteStableTime = 0;
+  }
+
+  state.rafPitchId = requestAnimationFrame(monitorTick);
+}
+
+function stopMicMonitoring() {
+  if (state.rafPitchId) cancelAnimationFrame(state.rafPitchId);
+  state.rafPitchId = null;
+  const statusEl = document.getElementById('mic-panel-status');
+  if (statusEl) {
+    statusEl.textContent = 'выключен';
+    statusEl.classList.remove('live');
+  }
+  const micInd = document.getElementById('mic-indicator');
+  if (micInd) micInd.classList.remove('on');
+  const meterEl = document.getElementById('vol-meter-fill');
+  if (meterEl) meterEl.style.width = '0%';
 }
 
 // ============================================================
@@ -1474,11 +1682,12 @@ function openPiece(piece) {
   document.getElementById('tempo-slider').value = 100;
   document.getElementById('practice-feedback').textContent = 'Послушай, как звучит. Потом выбери руку и попробуй сыграть сама.';
   document.getElementById('practice-feedback').className = 'feedback-line';
-  document.getElementById('pitch-monitor').textContent = '';
   setMode('listen');
 
   showScreen('piece-detail');
   setTimeout(() => renderPieceSheet(piece), 50);
+  // Start mic monitoring immediately so user can verify it works
+  setTimeout(() => startMicMonitoring(), 100);
 }
 
 function setMode(mode) {
@@ -1726,7 +1935,8 @@ function startPiecePractice() {
   // Highlight first note
   renderPieceSheet(state.currentPiece, hand === 'rh' ? firstNote.indexInHand : -1, hand === 'lh' ? firstNote.indexInHand : -1);
 
-  startPitchDetection(handlePiecePitch);
+  // Make sure mic monitoring is running (it drives handlePiecePitch via monitorTick)
+  if (!state.rafPitchId) startMicMonitoring();
 }
 
 function noteRuFromMidi(midi) {
@@ -1738,14 +1948,6 @@ function handlePiecePitch(midi, hz) {
   if (!state.isPracticing || !state.expectedSequence.length) return;
   const expected = state.expectedSequence[state.cursorIdx];
   if (!expected) return;
-
-  const monitor = document.getElementById('pitch-monitor');
-  if (midi > 0) {
-    const n = midiToName(midi);
-    monitor.textContent = `Слышу: ${NOTE_RU_CAP[n.letter]} (${hz.toFixed(0)} Гц)`;
-  } else {
-    monitor.textContent = '';
-  }
 
   if (midi < 0) {
     state.lastNoteMatch = null;
@@ -1807,17 +2009,16 @@ function advancePieceCursor() {
 
 function stopPiecePractice() {
   state.isPracticing = false;
-  stopPitchDetection();
+  // Keep mic monitoring active - user can see what mic hears
   document.getElementById('action-btn').textContent = state.currentMode === 'rh' ? '🎤 Тренировать (правая)' : '🎤 Тренировать (левая)';
   document.getElementById('practice-feedback').textContent = 'Остановилась. Когда захочешь — продолжим!';
   document.getElementById('practice-feedback').className = 'feedback-line';
-  document.getElementById('pitch-monitor').textContent = '';
   renderPieceSheet(state.currentPiece);
 }
 
 function finishPiecePractice() {
   state.isPracticing = false;
-  stopPitchDetection();
+  // Keep mic monitoring on so user sees feedback continuing
   // Stars based on performance: how few mistakes
   const total = state.expectedSequence.length;
   const correct = state.pieceCorrect;
