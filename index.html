@@ -1105,6 +1105,9 @@ const state = {
   // tempo
   pieceTempoPct: 100,
 
+  // Tracks audio oscillators scheduled in Web Audio so we can stop them on user request
+  scheduledOscs: [],
+
   // scales
   currentScale: null,
   scaleSeq: [], // flat array of midi notes
@@ -1257,6 +1260,7 @@ function playMidi(midi, durationSec = 0.5, when = 0, gainBoost = 1) {
   o1.connect(gain);
   o1.start(t0);
   o1.stop(t0 + durationSec + 0.05);
+  state.scheduledOscs.push(o1);
 
   // overtone for piano feel
   const o2 = ctx.createOscillator();
@@ -1269,6 +1273,7 @@ function playMidi(midi, durationSec = 0.5, when = 0, gainBoost = 1) {
   o2.connect(g2).connect(ctx.destination);
   o2.start(t0);
   o2.stop(t0 + durationSec + 0.05);
+  state.scheduledOscs.push(o2);
 
   return { stop: () => { try { o1.stop(); o2.stop(); } catch(e){} } };
 }
@@ -1855,8 +1860,17 @@ function playPiecePlayback() {
 
 function stopPiecePlayback() {
   state.isPlayingBack = false;
+  // Cancel visual cursor timers
   state.playbackTimers.forEach(t => clearTimeout(t));
   state.playbackTimers = [];
+  // Stop all scheduled audio oscillators (this is the critical part:
+  // Web Audio events are queued ahead of time and don't respect setTimeout)
+  state.scheduledOscs.forEach(osc => {
+    try { osc.stop(); } catch(e) { /* already stopped — fine */ }
+    try { osc.disconnect(); } catch(e) {}
+  });
+  state.scheduledOscs = [];
+
   if (state.currentScreen === 'piece-detail') {
     renderPieceSheet(state.currentPiece);
     const ab = document.getElementById('action-btn');
@@ -1945,6 +1959,7 @@ function playAccompaniment() {
     o.connect(g).connect(ctx.destination);
     o.start(t0);
     o.stop(t0 + 0.06);
+    state.scheduledOscs.push(o);
   }
 
   // Schedule LH notes after count-in
@@ -1978,6 +1993,7 @@ function playAccompaniment() {
       o.connect(g).connect(ctx.destination);
       o.start(tickTime);
       o.stop(tickTime + 0.05);
+      state.scheduledOscs.push(o);
     }
   });
 
@@ -2034,6 +2050,7 @@ function playBothHandsCursor() {
     o.connect(g).connect(ctx.destination);
     o.start(t0);
     o.stop(t0 + 0.06);
+    state.scheduledOscs.push(o);
   }
 
   const offsetSec = beatsPerMeasure * secPerBeat;
@@ -2052,6 +2069,7 @@ function playBothHandsCursor() {
     o.connect(g).connect(ctx.destination);
     o.start(t0);
     o.stop(t0 + 0.06);
+    state.scheduledOscs.push(o);
   }
 
   // Visual cursor — advance through RH and LH together
