@@ -1,0 +1,2178 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Музыкальный сад — фортепиано</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.3/build/cjs/vexflow.js"></script>
+<style>
+  :root {
+    --cream: #FDF6E3;
+    --cream-deep: #F5EBD0;
+    --plum: #6B3D5C;
+    --plum-deep: #4A2640;
+    --gold: #D4A574;
+    --gold-deep: #B8854F;
+    --sage: #87A878;
+    --sage-deep: #5E8553;
+    --coral: #E89B7A;
+    --coral-deep: #C97A5A;
+    --ink: #2D2424;
+    --mist: #F0E8D8;
+    --paper: #FFFCF4;
+    --shadow-warm: 0 8px 30px rgba(107, 61, 92, 0.12);
+    --shadow-soft: 0 4px 16px rgba(107, 61, 92, 0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Nunito', system-ui, sans-serif;
+    color: var(--ink);
+    background: var(--cream);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  body {
+    background:
+      radial-gradient(circle at 15% 10%, rgba(232, 155, 122, 0.14) 0%, transparent 40%),
+      radial-gradient(circle at 85% 85%, rgba(135, 168, 120, 0.12) 0%, transparent 45%),
+      var(--cream);
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: radial-gradient(circle at 1px 1px, rgba(45, 36, 36, 0.05) 1px, transparent 0);
+    background-size: 24px 24px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  #app {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* === TOP BAR === */
+  .top-bar {
+    flex-shrink: 0;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: rgba(253, 246, 227, 0.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(107, 61, 92, 0.08);
+    z-index: 10;
+  }
+  .back-btn {
+    width: 40px; height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: white;
+    box-shadow: var(--shadow-soft);
+    color: var(--plum);
+    font-size: 1.3rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .back-btn:active { transform: scale(0.95); }
+  .logo {
+    font-family: 'Fraunces', serif;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--plum);
+    flex: 1;
+    text-align: center;
+    letter-spacing: -0.01em;
+  }
+  .logo .fox { font-size: 1.3rem; margin-right: 6px; }
+  .stars-counter {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: white;
+    padding: 7px 14px;
+    border-radius: 100px;
+    box-shadow: var(--shadow-soft);
+    font-weight: 700;
+    color: var(--gold-deep);
+    font-size: 0.95rem;
+    flex-shrink: 0;
+  }
+
+  /* === SCREENS === */
+  .screen-host {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  .screen { display: none; padding: 20px; min-height: 100%; }
+  .screen.active { display: block; animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* === HOME === */
+  .hero {
+    text-align: center;
+    padding: 24px 20px 32px;
+  }
+  .hero h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(2rem, 6vw, 3rem);
+    color: var(--plum);
+    font-weight: 600;
+    line-height: 1.1;
+    margin-bottom: 10px;
+    letter-spacing: -0.02em;
+  }
+  .hero h1 em { font-style: italic; color: var(--coral); }
+  .hero p {
+    color: var(--plum-deep);
+    opacity: 0.7;
+    font-size: 1.05rem;
+    max-width: 380px;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+  .section-cards {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  @media (min-width: 700px) {
+    .section-cards { grid-template-columns: repeat(3, 1fr); }
+  }
+  .section-card {
+    background: white;
+    border-radius: 22px;
+    padding: 24px 20px;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+    box-shadow: var(--shadow-soft);
+    text-align: center;
+    border: 2px solid transparent;
+    position: relative;
+    overflow: hidden;
+  }
+  .section-card:active { transform: scale(0.98); }
+  .section-card .icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+    display: block;
+  }
+  .section-card h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.4rem;
+    color: var(--plum);
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .section-card p {
+    color: var(--plum-deep);
+    opacity: 0.65;
+    font-size: 0.92rem;
+  }
+  .section-card.pieces { background: linear-gradient(135deg, white 0%, rgba(212, 165, 116, 0.08) 100%); }
+  .section-card.scales { background: linear-gradient(135deg, white 0%, rgba(135, 168, 120, 0.08) 100%); }
+  .section-card.ear { background: linear-gradient(135deg, white 0%, rgba(232, 155, 122, 0.08) 100%); }
+
+  /* === LIST PAGES === */
+  .page-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.8rem;
+    color: var(--plum);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .page-sub {
+    color: var(--plum-deep);
+    opacity: 0.65;
+    margin-bottom: 22px;
+    font-size: 0.95rem;
+  }
+  .list-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    max-width: 620px;
+    margin: 0 auto;
+  }
+  @media (min-width: 700px) {
+    .list-grid { grid-template-columns: 1fr 1fr; }
+  }
+  .item-card {
+    background: white;
+    border-radius: 18px;
+    padding: 18px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+    box-shadow: var(--shadow-soft);
+    border: 2px solid transparent;
+  }
+  .item-card:active { transform: scale(0.98); }
+  .item-card.completed { border-color: var(--sage); }
+  .item-icon {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    background: var(--mist);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-family: 'Fraunces', serif;
+    font-size: 1.4rem;
+    color: var(--plum);
+    font-weight: 600;
+  }
+  .item-info { flex: 1; min-width: 0; }
+  .item-info h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.1rem;
+    color: var(--ink);
+    font-weight: 600;
+    margin-bottom: 3px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .item-info p {
+    font-size: 0.85rem;
+    color: rgba(45, 36, 36, 0.6);
+  }
+  .item-stars {
+    color: var(--gold);
+    font-size: 1rem;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+  .difficulty-dots {
+    display: inline-flex; gap: 3px; margin-left: 6px;
+  }
+  .difficulty-dots span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(107, 61, 92, 0.2);
+  }
+  .difficulty-dots span.on { background: var(--coral); }
+
+  /* === PIECE DETAIL === */
+  .piece-header {
+    text-align: center;
+    margin-bottom: 18px;
+  }
+  .piece-header h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.6rem;
+    color: var(--plum);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .piece-header p {
+    color: var(--plum-deep);
+    opacity: 0.65;
+    font-style: italic;
+    font-size: 0.95rem;
+  }
+
+  .mode-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+  .mode-tab {
+    background: white;
+    border: 2px solid transparent;
+    color: var(--plum);
+    padding: 8px 14px;
+    border-radius: 100px;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 600;
+    font-size: 0.88rem;
+    transition: all 0.15s ease;
+    box-shadow: var(--shadow-soft);
+  }
+  .mode-tab.active {
+    background: var(--plum);
+    color: white;
+  }
+  .mode-tab:active { transform: scale(0.96); }
+
+  .sheet-container {
+    background: var(--paper);
+    border-radius: 16px;
+    padding: 16px 8px;
+    box-shadow: var(--shadow-soft);
+    margin-bottom: 16px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sheet-container svg {
+    display: block;
+    margin: 0 auto;
+  }
+
+  .practice-controls {
+    background: white;
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: var(--shadow-soft);
+    max-width: 620px;
+    margin: 0 auto;
+  }
+  .control-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .tempo-label {
+    font-weight: 600;
+    color: var(--plum-deep);
+    font-size: 0.9rem;
+    min-width: 90px;
+  }
+  .tempo-label b {
+    font-family: 'Fraunces', serif;
+    color: var(--plum);
+    font-size: 1.05rem;
+    margin-left: 4px;
+  }
+  input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    background: var(--mist);
+    border-radius: 100px;
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--coral);
+    cursor: pointer;
+    box-shadow: var(--shadow-soft);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--coral);
+    border: none;
+    cursor: pointer;
+  }
+
+  .feedback-line {
+    text-align: center;
+    margin-top: 12px;
+    font-weight: 600;
+    color: var(--plum-deep);
+    min-height: 24px;
+    font-size: 0.95rem;
+    transition: color 0.2s ease;
+  }
+  .feedback-line.success { color: var(--sage-deep); }
+  .feedback-line.warn { color: var(--coral-deep); }
+  .pitch-monitor {
+    text-align: center;
+    font-size: 0.78rem;
+    color: rgba(45, 36, 36, 0.5);
+    font-variant-numeric: tabular-nums;
+    min-height: 16px;
+    margin-top: 4px;
+  }
+
+  /* === BUTTONS === */
+  .primary-btn {
+    background: var(--plum);
+    color: var(--cream);
+    border: none;
+    padding: 14px 28px;
+    border-radius: 100px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: var(--shadow-warm);
+    transition: transform 0.15s ease;
+    width: 100%;
+    margin-top: 8px;
+  }
+  .primary-btn:active { transform: scale(0.97); }
+  .primary-btn.coral { background: var(--coral); color: white; }
+  .primary-btn.sage { background: var(--sage-deep); color: white; }
+  .primary-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .ghost-btn {
+    background: transparent;
+    color: var(--plum);
+    border: 2px solid var(--plum);
+    padding: 12px 24px;
+    border-radius: 100px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+
+  /* === KEYBOARD === */
+  .keyboard-wrap {
+    background: linear-gradient(to bottom, transparent, rgba(107, 61, 92, 0.06));
+    padding: 16px 6px 18px;
+    margin: 0 -20px -20px;
+    border-radius: 0;
+  }
+  .keyboard {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    height: 110px;
+    position: relative;
+    max-width: 700px;
+    margin: 0 auto;
+    user-select: none;
+  }
+  .key {
+    border: none;
+    cursor: pointer;
+    transition: all 0.08s ease;
+    position: relative;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 600;
+  }
+  .key.white {
+    flex: 1;
+    max-width: 70px;
+    height: 100%;
+    background: linear-gradient(to bottom, #FFFEF8 0%, #FAF3E0 100%);
+    border: 1px solid rgba(107, 61, 92, 0.15);
+    border-radius: 0 0 10px 10px;
+    box-shadow:
+      inset 0 -3px 0 rgba(107, 61, 92, 0.08),
+      0 3px 6px rgba(107, 61, 92, 0.12);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    padding-bottom: 8px;
+    color: var(--plum-deep);
+    font-size: 0.78rem;
+  }
+  .key.white:not(:last-child) { margin-right: 1px; }
+  .key.white .ru { font-family: 'Fraunces', serif; font-weight: 600; font-size: 0.85rem; }
+  .key.white .finger {
+    position: absolute;
+    top: 8px;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--coral);
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+  .key.highlight {
+    background: linear-gradient(to bottom, var(--gold) 0%, var(--gold-deep) 100%) !important;
+    color: white !important;
+  }
+  .key.success-flash {
+    background: linear-gradient(to bottom, var(--sage) 0%, var(--sage-deep) 100%) !important;
+    color: white !important;
+  }
+  .key:active { transform: translateY(2px); }
+
+  /* === EAR GAME === */
+  .ear-area {
+    text-align: center;
+    padding: 30px 20px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  .ear-status {
+    font-family: 'Fraunces', serif;
+    font-size: 1.6rem;
+    color: var(--plum);
+    margin-bottom: 16px;
+    min-height: 50px;
+  }
+  .ear-status.listen { color: var(--coral-deep); }
+  .ear-status.repeat { color: var(--sage-deep); }
+  .ear-pulse {
+    display: inline-block;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--coral);
+    margin: 0 6px;
+    vertical-align: middle;
+    animation: pulse-dot 0.8s infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.6; }
+  }
+  .ear-streak-display {
+    background: white;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 22px;
+    border-radius: 100px;
+    box-shadow: var(--shadow-soft);
+    margin-bottom: 24px;
+    font-weight: 600;
+  }
+  .ear-streak-display .num {
+    font-family: 'Fraunces', serif;
+    font-size: 1.7rem;
+    color: var(--coral-deep);
+    font-weight: 700;
+    line-height: 1;
+  }
+  .ear-played {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 16px 0;
+    min-height: 32px;
+    flex-wrap: wrap;
+  }
+  .ear-note {
+    background: var(--mist);
+    color: var(--plum-deep);
+    padding: 6px 14px;
+    border-radius: 100px;
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 1rem;
+  }
+  .ear-note.played { background: var(--gold); color: white; }
+  .ear-note.correct { background: var(--sage); color: white; }
+  .ear-note.wrong { background: var(--coral); color: white; }
+  .ear-level-pills {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin-bottom: 18px;
+  }
+  .ear-level-pills button {
+    background: white;
+    border: 2px solid transparent;
+    padding: 8px 16px;
+    border-radius: 100px;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--plum);
+    box-shadow: var(--shadow-soft);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.88rem;
+  }
+  .ear-level-pills button.active {
+    background: var(--plum);
+    color: white;
+  }
+
+  /* === MIC INDICATOR === */
+  .mic-indicator {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--mist);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.05rem;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+  }
+  .mic-indicator.on {
+    background: var(--coral);
+    color: white;
+    animation: mic-pulse 1.4s infinite;
+  }
+  @keyframes mic-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(232, 155, 122, 0.55); }
+    50% { box-shadow: 0 0 0 10px rgba(232, 155, 122, 0); }
+  }
+
+  /* === PERMISSION SCREEN === */
+  .perm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(45, 36, 36, 0.6);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 100;
+  }
+  .perm-overlay.active { display: flex; }
+  .perm-card {
+    background: white;
+    border-radius: 24px;
+    padding: 32px 24px;
+    max-width: 380px;
+    text-align: center;
+    box-shadow: var(--shadow-warm);
+  }
+  .perm-icon {
+    width: 76px; height: 76px;
+    border-radius: 50%;
+    background: var(--coral);
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem;
+    margin: 0 auto 18px;
+  }
+  .perm-card h2 {
+    font-family: 'Fraunces', serif;
+    color: var(--plum);
+    font-size: 1.4rem;
+    margin-bottom: 10px;
+  }
+  .perm-card p {
+    color: var(--plum-deep);
+    line-height: 1.5;
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+  }
+  .perm-actions { display: flex; flex-direction: column; gap: 8px; }
+  .hint-box {
+    background: rgba(212, 165, 116, 0.15);
+    border-left: 3px solid var(--gold);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--plum-deep);
+    margin-top: 14px;
+    text-align: left;
+    line-height: 1.4;
+  }
+
+  /* sheet music note coloring */
+  .vf-stavenote.cursor-current path,
+  .vf-stavenote.cursor-current .vf-notehead path {
+    fill: var(--coral) !important;
+    stroke: var(--coral) !important;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header class="top-bar">
+    <button class="back-btn" id="back-btn" style="visibility:hidden;" onclick="navBack()">←</button>
+    <div class="logo"><span class="fox">🦊</span>Музыкальный сад</div>
+    <div class="stars-counter">⭐ <span id="star-count">0</span></div>
+  </header>
+
+  <main class="screen-host">
+
+    <!-- HOME SCREEN -->
+    <section class="screen active" id="screen-home">
+      <div class="hero">
+        <h1>Привет, <em>пианист!</em></h1>
+        <p>Выбери, чем сегодня позанимаемся.</p>
+      </div>
+      <div class="section-cards">
+        <div class="section-card pieces" onclick="goPieces()">
+          <span class="icon">🎵</span>
+          <h3>Пьесы</h3>
+          <p>Разучивай новые мелодии</p>
+        </div>
+        <div class="section-card scales" onclick="goScales()">
+          <span class="icon">🎹</span>
+          <h3>Гаммы</h3>
+          <p>Прокачай технику</p>
+        </div>
+        <div class="section-card ear" onclick="goEar()">
+          <span class="icon">👂</span>
+          <h3>Слух</h3>
+          <p>Игра «Эхо» — повтори мелодию</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- PIECES LIST -->
+    <section class="screen" id="screen-pieces">
+      <h2 class="page-title">Пьесы</h2>
+      <p class="page-sub">Сыграй, и я послушаю как у тебя получается.</p>
+      <div class="list-grid" id="pieces-grid"></div>
+    </section>
+
+    <!-- PIECE DETAIL -->
+    <section class="screen" id="screen-piece-detail">
+      <div class="piece-header">
+        <h2 id="piece-title-el">—</h2>
+        <p id="piece-composer-el">—</p>
+      </div>
+      <div class="mode-tabs" id="mode-tabs">
+        <button class="mode-tab active" data-mode="listen">▶ Послушать</button>
+        <button class="mode-tab" data-mode="rh">Правая рука</button>
+        <button class="mode-tab" data-mode="lh">Левая рука</button>
+        <button class="mode-tab" data-mode="both">Двумя руками</button>
+      </div>
+      <div class="sheet-container">
+        <div id="sheet-music"></div>
+      </div>
+      <div class="practice-controls">
+        <div class="control-row">
+          <div class="tempo-label">Темп: <b><span id="tempo-display">100</span>%</b></div>
+          <input type="range" id="tempo-slider" min="50" max="120" value="100" step="5">
+        </div>
+        <div class="control-row" style="gap: 10px;">
+          <button class="primary-btn" id="action-btn" onclick="onActionBtn()">Начать</button>
+          <div class="mic-indicator" id="mic-indicator" title="Микрофон">🎤</div>
+        </div>
+        <div class="feedback-line" id="practice-feedback">Выбери режим занятия выше</div>
+        <div class="pitch-monitor" id="pitch-monitor"></div>
+      </div>
+    </section>
+
+    <!-- SCALES LIST -->
+    <section class="screen" id="screen-scales">
+      <h2 class="page-title">Гаммы</h2>
+      <p class="page-sub">Играй ровно и в темпе. Цифры — номера пальцев.</p>
+      <div class="list-grid" id="scales-grid"></div>
+    </section>
+
+    <!-- SCALE DETAIL -->
+    <section class="screen" id="screen-scale-detail">
+      <div class="piece-header">
+        <h2 id="scale-title-el">—</h2>
+        <p id="scale-sub-el">—</p>
+      </div>
+      <div class="sheet-container">
+        <div id="scale-sheet"></div>
+      </div>
+      <div class="practice-controls">
+        <div class="control-row">
+          <div class="tempo-label">Темп: <b><span id="scale-tempo-display">100</span>%</b></div>
+          <input type="range" id="scale-tempo-slider" min="50" max="120" value="100" step="5">
+        </div>
+        <div class="control-row" style="gap:10px;">
+          <button class="primary-btn" id="scale-action-btn" onclick="onScaleAction()">Послушать</button>
+          <button class="primary-btn coral" style="margin-top:8px;" onclick="startScalePractice()">Тренировать с микрофоном</button>
+        </div>
+        <div class="feedback-line" id="scale-feedback"></div>
+      </div>
+      <div class="keyboard-wrap" style="margin-top: 16px;">
+        <div class="keyboard" id="scale-keyboard"></div>
+      </div>
+    </section>
+
+    <!-- EAR TRAINING -->
+    <section class="screen" id="screen-ear">
+      <h2 class="page-title">Игра «Эхо»</h2>
+      <p class="page-sub">Я играю мелодию — а ты повторяй на клавишах ниже.</p>
+
+      <div class="ear-area">
+        <div class="ear-level-pills" id="ear-levels">
+          <button class="active" data-level="2">2 ноты</button>
+          <button data-level="3">3 ноты</button>
+          <button data-level="4">4 ноты</button>
+        </div>
+
+        <div class="ear-streak-display">
+          <span class="num" id="ear-streak">0</span>
+          <span style="opacity:0.6;">в ряд</span>
+        </div>
+
+        <div class="ear-status" id="ear-status">Нажми «Начать»</div>
+        <div class="ear-played" id="ear-played"></div>
+
+        <button class="primary-btn coral" id="ear-action" onclick="onEarAction()">Начать</button>
+      </div>
+
+      <div class="keyboard-wrap">
+        <div class="keyboard" id="ear-keyboard"></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- Permission overlay -->
+<div class="perm-overlay" id="perm-overlay">
+  <div class="perm-card">
+    <div class="perm-icon">🎤</div>
+    <h2>Разрешим микрофон?</h2>
+    <p>Чтобы я слышала, как ты играешь, и помогала с нотами.</p>
+    <div class="perm-actions">
+      <button class="primary-btn coral" onclick="requestMic()">Хорошо, разрешаю</button>
+      <button class="ghost-btn" onclick="closePerm(true)">Не сейчас</button>
+    </div>
+    <div class="hint-box" id="perm-hint" style="display:none;">
+      Не получилось? Микрофон работает только при открытии через https://. Если открыт локальный файл (file://), нужно загрузить страницу на бесплатный хостинг (Netlify Drop, GitHub Pages).
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   PIANO LEARNING APP v2 — sheet music edition
+   Уровень: ученица 2-го года, играет двумя руками
+   ============================================================ */
+
+// ---- Note helpers ----
+const NOTE_RU = {
+  'c': 'до', 'd': 'ре', 'e': 'ми', 'f': 'фа', 'g': 'соль', 'a': 'ля', 'b': 'си'
+};
+const NOTE_RU_CAP = {
+  'c': 'До', 'd': 'Ре', 'e': 'Ми', 'f': 'Фа', 'g': 'Соль', 'a': 'Ля', 'b': 'Си'
+};
+
+// MIDI conversions: middle C = MIDI 60
+const NOTE_TO_SEMITONE = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 };
+function midiFromKey(keyStr) {
+  // 'c/4', 'f#/5', 'bb/3'
+  const [pitch, octStr] = keyStr.split('/');
+  const oct = parseInt(octStr, 10);
+  const letter = pitch[0].toLowerCase();
+  let semis = NOTE_TO_SEMITONE[letter];
+  for (let i = 1; i < pitch.length; i++) {
+    if (pitch[i] === '#') semis++;
+    else if (pitch[i] === 'b') semis--;
+  }
+  return (oct + 1) * 12 + semis;
+}
+function freqFromMidi(midi) {
+  return 440 * Math.pow(2, (midi - 69) / 12);
+}
+function midiToName(midi) {
+  const names = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'];
+  const oct = Math.floor(midi / 12) - 1;
+  const idx = ((midi % 12) + 12) % 12;
+  return { letter: names[idx][0], full: names[idx], oct };
+}
+
+// ============================================================
+// PIECES DATA
+// Each piece: array of measures, each measure has rh/lh as arrays of notes
+// note: { keys: ['e/4'], duration: 'q', dots: 0 }
+// ============================================================
+const PIECES = [
+  {
+    id: 'jingle-bells',
+    title: 'Jingle Bells',
+    composer: 'Дж. Пьерпонт',
+    composerInfo: 'Рождество',
+    difficulty: 1,
+    keySig: 'C',
+    timeSig: '4/4',
+    tempo: 100,
+    measures: [
+      { rh: [['e/4','q'],['e/4','q'],['e/4','h']], lh: [['c/3','w']] },
+      { rh: [['e/4','q'],['e/4','q'],['e/4','h']], lh: [['c/3','w']] },
+      { rh: [['e/4','q'],['g/4','q'],['c/4','q'],['d/4','q']], lh: [['c/3','w']] },
+      { rh: [['e/4','w']], lh: [['g/2','h'],['c/3','h']] },
+      { rh: [['f/4','q'],['f/4','q'],['f/4','q'],['f/4','q']], lh: [['f/2','w']] },
+      { rh: [['f/4','q'],['e/4','q'],['e/4','q'],['e/4','q']], lh: [['c/3','w']] },
+      { rh: [['e/4','q'],['d/4','q'],['d/4','q'],['e/4','q']], lh: [['g/2','w']] },
+      { rh: [['d/4','h'],['g/4','h']], lh: [['g/2','h'],['c/3','h']] },
+    ]
+  },
+  {
+    id: 'ode-to-joy',
+    title: 'Ода к радости',
+    composer: 'Л. ван Бетховен',
+    composerInfo: '9-я симфония, тема',
+    difficulty: 2,
+    keySig: 'C',
+    timeSig: '4/4',
+    tempo: 100,
+    measures: [
+      { rh: [['e/4','q'],['e/4','q'],['f/4','q'],['g/4','q']], lh: [['c/3','w']] },
+      { rh: [['g/4','q'],['f/4','q'],['e/4','q'],['d/4','q']], lh: [['g/2','w']] },
+      { rh: [['c/4','q'],['c/4','q'],['d/4','q'],['e/4','q']], lh: [['f/2','w']] },
+      { rh: [['e/4','q',1],['d/4','8'],['d/4','h']], lh: [['g/2','w']] },
+      { rh: [['e/4','q'],['e/4','q'],['f/4','q'],['g/4','q']], lh: [['c/3','w']] },
+      { rh: [['g/4','q'],['f/4','q'],['e/4','q'],['d/4','q']], lh: [['g/2','w']] },
+      { rh: [['c/4','q'],['c/4','q'],['d/4','q'],['e/4','q']], lh: [['f/2','w']] },
+      { rh: [['d/4','q',1],['c/4','8'],['c/4','h']], lh: [['c/3','w']] },
+    ]
+  },
+  {
+    id: 'bach-menuet',
+    title: 'Менуэт соль мажор',
+    composer: 'И.С. Бах',
+    composerInfo: 'BWV Anh. 114',
+    difficulty: 3,
+    keySig: 'G',
+    timeSig: '3/4',
+    tempo: 100,
+    measures: [
+      { rh: [['d/5','q'],['g/4','8'],['a/4','8'],['b/4','8'],['c/5','8']], lh: [['g/3','h',1]] },
+      { rh: [['d/5','q'],['g/4','q'],['g/4','q']], lh: [['b/3','h',1]] },
+      { rh: [['e/5','q'],['c/5','8'],['d/5','8'],['e/5','8'],['f#/5','8']], lh: [['c/4','h',1]] },
+      { rh: [['g/5','q'],['g/4','q'],['g/4','q']], lh: [['b/3','h',1]] },
+      { rh: [['c/5','q'],['d/5','8'],['c/5','8'],['b/4','8'],['a/4','8']], lh: [['a/3','h',1]] },
+      { rh: [['b/4','q'],['c/5','8'],['b/4','8'],['a/4','8'],['g/4','8']], lh: [['g/3','h',1]] },
+      { rh: [['f#/4','q'],['g/4','8'],['a/4','8'],['b/4','8'],['g/4','8']], lh: [['d/3','h',1]] },
+      { rh: [['a/4','h',1]], lh: [['d/3','h',1]] },
+    ]
+  }
+];
+
+// ============================================================
+// SCALES DATA
+// Each scale: 1 octave ascending + descending, with fingering
+// ============================================================
+const SCALES = [
+  {
+    id: 'c-major',
+    name: 'До мажор',
+    info: 'Самая простая — все белые клавиши',
+    notes: ['c/4','d/4','e/4','f/4','g/4','a/4','b/4','c/5'],
+    fingering: [1, 2, 3, 1, 2, 3, 4, 5],
+    keySig: 'C'
+  },
+  {
+    id: 'g-major',
+    name: 'Соль мажор',
+    info: 'Один диез — фа#',
+    notes: ['g/4','a/4','b/4','c/5','d/5','e/5','f#/5','g/5'],
+    fingering: [1, 2, 3, 1, 2, 3, 4, 5],
+    keySig: 'G'
+  },
+  {
+    id: 'f-major',
+    name: 'Фа мажор',
+    info: 'Один бемоль — си♭',
+    notes: ['f/4','g/4','a/4','bb/4','c/5','d/5','e/5','f/5'],
+    fingering: [1, 2, 3, 4, 1, 2, 3, 4],
+    keySig: 'F'
+  },
+  {
+    id: 'a-minor',
+    name: 'Ля минор',
+    info: 'Натуральный — без знаков',
+    notes: ['a/3','b/3','c/4','d/4','e/4','f/4','g/4','a/4'],
+    fingering: [1, 2, 3, 1, 2, 3, 4, 5],
+    keySig: 'C'
+  }
+];
+
+// ============================================================
+// STATE
+// ============================================================
+const state = {
+  currentScreen: 'home',
+  navStack: ['home'],
+
+  // audio / mic
+  audioContext: null,
+  micStream: null,
+  analyser: null,
+  pitchBuffer: null,
+  micGranted: false,
+
+  // pitch detection
+  rafPitchId: null,
+  detectedHz: 0,
+  lastNoteMatch: null,
+  noteStableTime: 0,
+
+  // current piece
+  currentPiece: null,
+  currentMode: 'listen',
+  expectedSequence: [], // flat list of [keyName, measureIdx, noteIdxInMeasure, hand]
+  cursorIdx: 0,
+  pieceCorrect: 0,
+  pieceMistakes: 0,
+  isPracticing: false,
+  isPlayingBack: false,
+  playbackTimers: [],
+
+  // tempo
+  pieceTempoPct: 100,
+
+  // scales
+  currentScale: null,
+  scaleSeq: [], // flat array of midi notes
+  scaleCursor: 0,
+  scaleTempoPct: 100,
+  scalePracticing: false,
+
+  // ear training
+  earLevel: 2,
+  earStreak: 0,
+  earSequence: [], // array of midi notes
+  earUserPos: 0,
+  earState: 'idle', // idle | playing | waiting | done
+
+  // progress
+  pieceStars: {}, // pieceId -> 0..3
+  scaleStars: {}, // scaleId -> 0..3
+  totalStars: 0
+};
+
+// === STORAGE ===
+const STORAGE_KEY = 'piano-garden-v2';
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    state.pieceStars = data.pieceStars || {};
+    state.scaleStars = data.scaleStars || {};
+    state.earStreak = data.earStreakBest || 0;
+    recalcStars();
+  } catch (e) { console.warn('Load failed', e); }
+}
+function saveProgress() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      pieceStars: state.pieceStars,
+      scaleStars: state.scaleStars,
+      earStreakBest: state.earStreak
+    }));
+  } catch (e) {}
+}
+function recalcStars() {
+  let total = 0;
+  Object.values(state.pieceStars).forEach(v => total += v);
+  Object.values(state.scaleStars).forEach(v => total += v);
+  state.totalStars = total;
+  document.getElementById('star-count').textContent = total;
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showScreen(id, addToStack = true) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  document.querySelector('.screen-host').scrollTop = 0;
+  if (addToStack && state.currentScreen !== id) {
+    state.navStack.push(id);
+  }
+  state.currentScreen = id;
+  document.getElementById('back-btn').style.visibility = id === 'home' ? 'hidden' : 'visible';
+}
+function navBack() {
+  // Stop any active practice
+  stopPiecePlayback();
+  stopPitchDetection();
+  state.isPracticing = false;
+  state.scalePracticing = false;
+
+  if (state.navStack.length > 1) {
+    state.navStack.pop();
+    showScreen(state.navStack[state.navStack.length - 1], false);
+  } else {
+    showScreen('home', false);
+  }
+}
+function goHome() { showScreen('home'); }
+function goPieces() { renderPiecesList(); showScreen('pieces'); }
+function goScales() { renderScalesList(); showScreen('scales'); }
+function goEar() {
+  state.earLevel = 2;
+  state.earStreak = 0;
+  document.querySelectorAll('#ear-levels button').forEach(b => {
+    b.classList.toggle('active', b.dataset.level === '2');
+  });
+  document.getElementById('ear-streak').textContent = '0';
+  document.getElementById('ear-status').textContent = 'Нажми «Начать»';
+  document.getElementById('ear-status').className = 'ear-status';
+  document.getElementById('ear-played').innerHTML = '';
+  document.getElementById('ear-action').textContent = 'Начать';
+  buildEarKeyboard();
+  showScreen('ear');
+}
+
+// ============================================================
+// AUDIO
+// ============================================================
+function ensureAudio() {
+  if (!state.audioContext) {
+    state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (state.audioContext.state === 'suspended') state.audioContext.resume();
+  return state.audioContext;
+}
+
+async function requestMic() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false
+      }
+    });
+    state.micStream = stream;
+    const ctx = ensureAudio();
+    const src = ctx.createMediaStreamSource(stream);
+    state.analyser = ctx.createAnalyser();
+    state.analyser.fftSize = 2048;
+    src.connect(state.analyser);
+    state.pitchBuffer = new Float32Array(state.analyser.fftSize);
+    state.micGranted = true;
+    closePerm();
+  } catch (e) {
+    console.error('Mic error:', e);
+    document.getElementById('perm-hint').style.display = 'block';
+  }
+}
+function closePerm(skipped) {
+  document.getElementById('perm-overlay').classList.remove('active');
+}
+
+// Play a single note (piano-ish synth)
+function playMidi(midi, durationSec = 0.5, when = 0, gainBoost = 1) {
+  const ctx = ensureAudio();
+  const t0 = ctx.currentTime + when;
+  const freq = freqFromMidi(midi);
+
+  // Layered oscillators for richer tone
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0, t0);
+  gain.gain.linearRampToValueAtTime(0.28 * gainBoost, t0 + 0.005);
+  gain.gain.exponentialRampToValueAtTime(0.001, t0 + durationSec);
+  gain.connect(ctx.destination);
+
+  const o1 = ctx.createOscillator();
+  o1.type = 'triangle';
+  o1.frequency.value = freq;
+  o1.connect(gain);
+  o1.start(t0);
+  o1.stop(t0 + durationSec + 0.05);
+
+  // overtone for piano feel
+  const o2 = ctx.createOscillator();
+  o2.type = 'sine';
+  o2.frequency.value = freq * 2;
+  const g2 = ctx.createGain();
+  g2.gain.setValueAtTime(0, t0);
+  g2.gain.linearRampToValueAtTime(0.06 * gainBoost, t0 + 0.005);
+  g2.gain.exponentialRampToValueAtTime(0.001, t0 + durationSec * 0.7);
+  o2.connect(g2).connect(ctx.destination);
+  o2.start(t0);
+  o2.stop(t0 + durationSec + 0.05);
+
+  return { stop: () => { try { o1.stop(); o2.stop(); } catch(e){} } };
+}
+
+// ============================================================
+// PITCH DETECTION (autocorrelation)
+// ============================================================
+function autoCorrelate(buf, sampleRate) {
+  let SIZE = buf.length;
+  let rms = 0;
+  for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
+  rms = Math.sqrt(rms / SIZE);
+  if (rms < 0.012) return -1;
+
+  let r1 = 0, r2 = SIZE - 1, thres = 0.2;
+  for (let i = 0; i < SIZE / 2; i++)
+    if (Math.abs(buf[i]) < thres) { r1 = i; break; }
+  for (let i = 1; i < SIZE / 2; i++)
+    if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; }
+
+  buf = buf.slice(r1, r2);
+  SIZE = buf.length;
+  if (SIZE <= 0) return -1;
+
+  const c = new Array(SIZE).fill(0);
+  for (let i = 0; i < SIZE; i++)
+    for (let j = 0; j < SIZE - i; j++)
+      c[i] += buf[j] * buf[j + i];
+
+  let d = 0;
+  while (d < SIZE - 1 && c[d] > c[d + 1]) d++;
+  let maxval = -1, maxpos = -1;
+  for (let i = d; i < SIZE; i++) {
+    if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+  }
+  if (maxpos <= 0) return -1;
+  let T0 = maxpos;
+  if (T0 > 0 && T0 < SIZE - 1) {
+    const x1 = c[T0 - 1], x2 = c[T0], x3 = c[T0 + 1];
+    const a = (x1 + x3 - 2 * x2) / 2;
+    const b = (x3 - x1) / 2;
+    if (a) T0 = T0 - b / (2 * a);
+  }
+  return sampleRate / T0;
+}
+
+function midiFromHz(hz) {
+  if (hz <= 0) return -1;
+  return Math.round(69 + 12 * Math.log2(hz / 440));
+}
+
+function startPitchDetection(onMidi) {
+  if (!state.analyser) return false;
+  document.getElementById('mic-indicator').classList.add('on');
+  function tick() {
+    if (!state.analyser) return;
+    state.analyser.getFloatTimeDomainData(state.pitchBuffer);
+    const hz = autoCorrelate(state.pitchBuffer, state.audioContext.sampleRate);
+    if (hz > 60 && hz < 2000) {
+      state.detectedHz = hz;
+      const m = midiFromHz(hz);
+      onMidi(m, hz);
+    } else {
+      state.detectedHz = 0;
+      state.noteStableTime = 0;
+      state.lastNoteMatch = null;
+      onMidi(-1, 0);
+    }
+    state.rafPitchId = requestAnimationFrame(tick);
+  }
+  tick();
+  return true;
+}
+function stopPitchDetection() {
+  if (state.rafPitchId) cancelAnimationFrame(state.rafPitchId);
+  state.rafPitchId = null;
+  state.lastNoteMatch = null;
+  state.noteStableTime = 0;
+  const mi = document.getElementById('mic-indicator');
+  if (mi) mi.classList.remove('on');
+}
+
+// ============================================================
+// SHEET MUSIC RENDERING (VexFlow)
+// ============================================================
+const VF = (typeof Vex !== 'undefined') ? Vex.Flow : null;
+
+function makeNote(spec, clef, isCursor) {
+  // spec: [keys, duration, dots]
+  const [keys, duration, dots = 0] = spec;
+  const keysArr = Array.isArray(keys) ? keys : [keys];
+  const note = new VF.StaveNote({
+    keys: keysArr,
+    duration: duration,
+    clef: clef
+  });
+  for (let i = 0; i < dots; i++) {
+    if (VF.Dot && VF.Dot.buildAndAttach) {
+      VF.Dot.buildAndAttach([note], { all: true });
+    } else {
+      note.addDotToAll && note.addDotToAll();
+    }
+  }
+  if (isCursor) {
+    note.setStyle({ fillStyle: '#E89B7A', strokeStyle: '#E89B7A' });
+  }
+  return note;
+}
+
+function getBeatsPerMeasure(timeSig) {
+  const [n, d] = timeSig.split('/').map(Number);
+  return { num: n, denom: d };
+}
+
+function renderPieceSheet(piece, cursorRH = -1, cursorLH = -1) {
+  const elId = 'sheet-music';
+  const el = document.getElementById(elId);
+  el.innerHTML = '';
+  if (!VF) { el.textContent = 'Не удалось загрузить нотный движок'; return; }
+
+  const { num: beatsNum, denom: beatsDenom } = getBeatsPerMeasure(piece.timeSig);
+
+  const containerWidth = el.parentElement.clientWidth - 20;
+  const measuresPerLine = containerWidth < 600 ? 2 : 4;
+  const lineHeight = 200;
+  const totalLines = Math.ceil(piece.measures.length / measuresPerLine);
+
+  const renderer = new VF.Renderer(el, VF.Renderer.Backends.SVG);
+  const totalWidth = Math.min(containerWidth, 760);
+  renderer.resize(totalWidth, totalLines * lineHeight + 30);
+  const ctx = renderer.getContext();
+
+  let absoluteRH = 0;
+  let absoluteLH = 0;
+
+  for (let lineIdx = 0; lineIdx < totalLines; lineIdx++) {
+    const startM = lineIdx * measuresPerLine;
+    const endM = Math.min(startM + measuresPerLine, piece.measures.length);
+    const lineMeasures = piece.measures.slice(startM, endM);
+    const y = 10 + lineIdx * lineHeight;
+    let x = 10;
+
+    lineMeasures.forEach((measure, mIdx) => {
+      const isFirstM = mIdx === 0;
+      const extraWidth = isFirstM ? 50 : 0;
+      const measureWidth = (totalWidth - 20 - measuresPerLine * 0) / measuresPerLine;
+      const sw = measureWidth + (isFirstM ? 0 : 0);
+
+      const treble = new VF.Stave(x, y, sw);
+      const bass = new VF.Stave(x, y + 80, sw);
+
+      if (isFirstM) {
+        treble.addClef('treble');
+        bass.addClef('bass');
+        if (piece.keySig && piece.keySig !== 'C') {
+          treble.addKeySignature(piece.keySig);
+          bass.addKeySignature(piece.keySig);
+        }
+        if (lineIdx === 0) {
+          treble.addTimeSignature(piece.timeSig);
+          bass.addTimeSignature(piece.timeSig);
+        }
+      }
+      treble.setContext(ctx).draw();
+      bass.setContext(ctx).draw();
+
+      if (isFirstM) {
+        new VF.StaveConnector(treble, bass).setType(VF.StaveConnector.type.BRACE).setContext(ctx).draw();
+        new VF.StaveConnector(treble, bass).setType(VF.StaveConnector.type.SINGLE_LEFT).setContext(ctx).draw();
+      }
+      // single right at end
+      new VF.StaveConnector(treble, bass).setType(VF.StaveConnector.type.SINGLE_RIGHT).setContext(ctx).draw();
+
+      // build voice notes
+      const trebleNotes = measure.rh.map((spec, i) => {
+        const isCursor = (absoluteRH + i) === cursorRH;
+        return makeNote(spec, 'treble', isCursor);
+      });
+      const bassNotes = measure.lh.map((spec, i) => {
+        const isCursor = (absoluteLH + i) === cursorLH;
+        return makeNote(spec, 'bass', isCursor);
+      });
+      absoluteRH += measure.rh.length;
+      absoluteLH += measure.lh.length;
+
+      const v1 = new VF.Voice({ num_beats: beatsNum, beat_value: beatsDenom })
+        .setMode(VF.Voice.Mode.SOFT)
+        .addTickables(trebleNotes);
+      const v2 = new VF.Voice({ num_beats: beatsNum, beat_value: beatsDenom })
+        .setMode(VF.Voice.Mode.SOFT)
+        .addTickables(bassNotes);
+
+      try {
+        new VF.Formatter()
+          .joinVoices([v1])
+          .joinVoices([v2])
+          .format([v1, v2], sw - (isFirstM ? 60 : 20));
+        v1.draw(ctx, treble);
+        v2.draw(ctx, bass);
+      } catch (e) {
+        console.warn('Formatter error:', e);
+      }
+
+      x += sw;
+    });
+  }
+}
+
+// Render scale on a single treble staff
+function renderScaleSheet(scale) {
+  const el = document.getElementById('scale-sheet');
+  el.innerHTML = '';
+  if (!VF) return;
+
+  // ascending then descending
+  const all = [...scale.notes, ...scale.notes.slice().reverse().slice(1)];
+  const fingers = [...scale.fingering, ...scale.fingering.slice().reverse().slice(1)];
+
+  const containerWidth = el.parentElement.clientWidth - 20;
+  const totalWidth = Math.min(containerWidth, 760);
+  const renderer = new VF.Renderer(el, VF.Renderer.Backends.SVG);
+
+  // 8 notes per measure (in 8/4) — but let's split into 2 lines
+  const notesPerLine = containerWidth < 600 ? 8 : 16;
+  const lines = Math.ceil(all.length / notesPerLine);
+  renderer.resize(totalWidth, lines * 130 + 20);
+  const ctx = renderer.getContext();
+
+  for (let li = 0; li < lines; li++) {
+    const startN = li * notesPerLine;
+    const endN = Math.min(startN + notesPerLine, all.length);
+    const lineNotes = all.slice(startN, endN);
+    const lineFingers = fingers.slice(startN, endN);
+    const y = 10 + li * 130;
+
+    const stave = new VF.Stave(10, y, totalWidth - 20);
+    if (li === 0) {
+      stave.addClef('treble');
+      if (scale.keySig && scale.keySig !== 'C') stave.addKeySignature(scale.keySig);
+    }
+    stave.setContext(ctx).draw();
+
+    const vfNotes = lineNotes.map((k, i) => {
+      const n = new VF.StaveNote({ keys: [k], duration: 'q', clef: 'treble' });
+      // add fingering annotation
+      const fingerAnno = new VF.Annotation(String(lineFingers[i]))
+        .setFont('Nunito', 11, 'bold')
+        .setVerticalJustification(VF.Annotation.VerticalJustify.TOP);
+      n.addModifier(fingerAnno, 0);
+      return n;
+    });
+
+    const v = new VF.Voice({ num_beats: lineNotes.length, beat_value: 4 })
+      .setMode(VF.Voice.Mode.SOFT)
+      .addTickables(vfNotes);
+
+    try {
+      new VF.Formatter().joinVoices([v]).format([v], totalWidth - 60);
+      v.draw(ctx, stave);
+    } catch(e) { console.warn(e); }
+  }
+}
+
+// ============================================================
+// PIECES SECTION
+// ============================================================
+function renderPiecesList() {
+  const grid = document.getElementById('pieces-grid');
+  grid.innerHTML = '';
+  PIECES.forEach((p, idx) => {
+    const stars = state.pieceStars[p.id] || 0;
+    const card = document.createElement('div');
+    card.className = 'item-card' + (stars > 0 ? ' completed' : '');
+    card.innerHTML = `
+      <div class="item-icon">${idx + 1}</div>
+      <div class="item-info">
+        <h3>${p.title}</h3>
+        <p>${p.composer}<span class="difficulty-dots">
+          <span class="${p.difficulty >= 1 ? 'on' : ''}"></span>
+          <span class="${p.difficulty >= 2 ? 'on' : ''}"></span>
+          <span class="${p.difficulty >= 3 ? 'on' : ''}"></span>
+        </span></p>
+      </div>
+      <div class="item-stars">${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}</div>
+    `;
+    card.addEventListener('click', () => openPiece(p));
+    grid.appendChild(card);
+  });
+}
+
+function openPiece(piece) {
+  state.currentPiece = piece;
+  state.currentMode = 'listen';
+  state.cursorIdx = 0;
+  state.pieceCorrect = 0;
+  state.pieceMistakes = 0;
+  state.isPracticing = false;
+  state.pieceTempoPct = 100;
+
+  document.getElementById('piece-title-el').textContent = piece.title;
+  document.getElementById('piece-composer-el').textContent = `${piece.composer} · ${piece.composerInfo}`;
+  document.getElementById('tempo-display').textContent = '100';
+  document.getElementById('tempo-slider').value = 100;
+  document.getElementById('practice-feedback').textContent = 'Послушай, как звучит. Потом выбери руку и попробуй сыграть сама.';
+  document.getElementById('practice-feedback').className = 'feedback-line';
+  document.getElementById('pitch-monitor').textContent = '';
+  setMode('listen');
+
+  showScreen('piece-detail');
+  setTimeout(() => renderPieceSheet(piece), 50);
+}
+
+function setMode(mode) {
+  state.currentMode = mode;
+  document.querySelectorAll('#mode-tabs .mode-tab').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  stopPiecePlayback();
+  stopPitchDetection();
+  state.isPracticing = false;
+  state.cursorIdx = 0;
+
+  const ab = document.getElementById('action-btn');
+  if (mode === 'listen') {
+    ab.textContent = '▶ Послушать';
+    ab.className = 'primary-btn';
+    document.getElementById('practice-feedback').textContent = 'Нажми «Послушать», чтобы услышать пьесу.';
+  } else if (mode === 'rh') {
+    ab.textContent = state.micGranted ? '🎤 Тренировать (правая)' : '🎤 Включить микрофон';
+    ab.className = 'primary-btn coral';
+    document.getElementById('practice-feedback').textContent = 'Сыграй правой рукой. Я слежу за нотами.';
+  } else if (mode === 'lh') {
+    ab.textContent = state.micGranted ? '🎤 Тренировать (левая)' : '🎤 Включить микрофон';
+    ab.className = 'primary-btn coral';
+    document.getElementById('practice-feedback').textContent = 'Сыграй левой рукой. Я слежу за нотами.';
+  } else if (mode === 'both') {
+    ab.textContent = '🎵 Запустить метроном';
+    ab.className = 'primary-btn sage';
+    document.getElementById('practice-feedback').textContent = 'Играй двумя руками — я задам темп метрономом.';
+  }
+  renderPieceSheet(state.currentPiece);
+}
+
+// Mode tabs
+document.querySelectorAll('#mode-tabs .mode-tab').forEach(btn => {
+  btn.addEventListener('click', () => setMode(btn.dataset.mode));
+});
+
+// Tempo slider for pieces
+document.getElementById('tempo-slider').addEventListener('input', (e) => {
+  state.pieceTempoPct = parseInt(e.target.value, 10);
+  document.getElementById('tempo-display').textContent = state.pieceTempoPct;
+});
+document.getElementById('scale-tempo-slider').addEventListener('input', (e) => {
+  state.scaleTempoPct = parseInt(e.target.value, 10);
+  document.getElementById('scale-tempo-display').textContent = state.scaleTempoPct;
+});
+
+function onActionBtn() {
+  if (!state.micGranted && (state.currentMode === 'rh' || state.currentMode === 'lh')) {
+    document.getElementById('perm-overlay').classList.add('active');
+    return;
+  }
+  if (state.currentMode === 'listen') {
+    if (state.isPlayingBack) stopPiecePlayback();
+    else playPiecePlayback();
+  } else if (state.currentMode === 'rh' || state.currentMode === 'lh') {
+    if (state.isPracticing) stopPiecePractice();
+    else startPiecePractice();
+  } else if (state.currentMode === 'both') {
+    if (state.isPlayingBack) stopPiecePlayback();
+    else playMetronomeOnly();
+  }
+}
+
+// ===== Listen mode: play piece via synth =====
+function getDurationBeats(spec) {
+  const [, dur, dots = 0] = spec;
+  let beats;
+  switch (dur) {
+    case 'w': beats = 4; break;
+    case 'h': beats = 2; break;
+    case 'q': beats = 1; break;
+    case '8': beats = 0.5; break;
+    case '16': beats = 0.25; break;
+    default: beats = 1;
+  }
+  // dots multiply by 1.5, 1.75, etc
+  let mult = 1;
+  let add = 0.5;
+  for (let i = 0; i < dots; i++) {
+    mult += add;
+    add /= 2;
+  }
+  return beats * mult;
+}
+
+function buildPieceTimeline(piece) {
+  // returns array of events { time (sec), midi, durationSec, hand }
+  const bpm = piece.tempo * (state.pieceTempoPct / 100);
+  const secPerBeat = 60 / bpm;
+  const events = [];
+
+  let rhTime = 0;
+  let lhTime = 0;
+  piece.measures.forEach(m => {
+    let t = rhTime;
+    m.rh.forEach(spec => {
+      const beats = getDurationBeats(spec);
+      const keys = Array.isArray(spec[0]) ? spec[0] : [spec[0]];
+      keys.forEach(k => {
+        events.push({ time: t, midi: midiFromKey(k), durationSec: beats * secPerBeat * 0.95, hand: 'rh' });
+      });
+      t += beats * secPerBeat;
+    });
+    rhTime = t;
+
+    let tl = lhTime;
+    m.lh.forEach(spec => {
+      const beats = getDurationBeats(spec);
+      const keys = Array.isArray(spec[0]) ? spec[0] : [spec[0]];
+      keys.forEach(k => {
+        events.push({ time: tl, midi: midiFromKey(k), durationSec: beats * secPerBeat * 0.95, hand: 'lh' });
+      });
+      tl += beats * secPerBeat;
+    });
+    lhTime = tl;
+  });
+
+  return { events, totalSec: Math.max(rhTime, lhTime) };
+}
+
+function playPiecePlayback() {
+  const piece = state.currentPiece;
+  if (!piece) return;
+  state.isPlayingBack = true;
+  document.getElementById('action-btn').textContent = '⏹ Остановить';
+  document.getElementById('practice-feedback').className = 'feedback-line success';
+  document.getElementById('practice-feedback').textContent = 'Играю...';
+
+  ensureAudio();
+  const { events, totalSec } = buildPieceTimeline(piece);
+
+  // schedule cursor advances based on RH events (visual)
+  let rhIdx = 0;
+  const rhEvents = events.filter(e => e.hand === 'rh');
+  state.playbackTimers = [];
+
+  events.forEach(ev => {
+    playMidi(ev.midi, ev.durationSec, ev.time, ev.hand === 'rh' ? 1 : 0.65);
+  });
+
+  rhEvents.forEach((ev, i) => {
+    const tid = setTimeout(() => {
+      renderPieceSheet(piece, i);
+    }, ev.time * 1000);
+    state.playbackTimers.push(tid);
+  });
+
+  const endTid = setTimeout(() => {
+    stopPiecePlayback();
+  }, totalSec * 1000 + 500);
+  state.playbackTimers.push(endTid);
+}
+
+function stopPiecePlayback() {
+  state.isPlayingBack = false;
+  state.playbackTimers.forEach(t => clearTimeout(t));
+  state.playbackTimers = [];
+  if (state.currentScreen === 'piece-detail') {
+    renderPieceSheet(state.currentPiece);
+    document.getElementById('action-btn').textContent = state.currentMode === 'listen' ? '▶ Послушать' : (state.currentMode === 'both' ? '🎵 Запустить метроном' : '🎤 Тренировать');
+    document.getElementById('practice-feedback').textContent = state.currentMode === 'listen' ? 'Нажми «Послушать», чтобы повторить.' : '';
+    document.getElementById('practice-feedback').className = 'feedback-line';
+  }
+}
+
+function playMetronomeOnly() {
+  const piece = state.currentPiece;
+  if (!piece) return;
+  state.isPlayingBack = true;
+  document.getElementById('action-btn').textContent = '⏹ Стоп';
+  document.getElementById('practice-feedback').className = 'feedback-line';
+  document.getElementById('practice-feedback').textContent = 'Метроном пошёл. Играй двумя руками.';
+
+  const bpm = piece.tempo * (state.pieceTempoPct / 100);
+  const secPerBeat = 60 / bpm;
+  const { num: beatsPerMeasure } = getBeatsPerMeasure(piece.timeSig);
+  const totalBeats = piece.measures.length * beatsPerMeasure;
+
+  ensureAudio();
+  const ctx = state.audioContext;
+  state.playbackTimers = [];
+
+  for (let b = 0; b < totalBeats; b++) {
+    const t0 = ctx.currentTime + b * secPerBeat;
+    const isDownbeat = (b % beatsPerMeasure) === 0;
+    const o = ctx.createOscillator();
+    o.type = 'square';
+    o.frequency.value = isDownbeat ? 1200 : 800;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(isDownbeat ? 0.12 : 0.07, t0 + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.05);
+    o.connect(g).connect(ctx.destination);
+    o.start(t0);
+    o.stop(t0 + 0.06);
+  }
+
+  const endTid = setTimeout(() => stopPiecePlayback(), totalBeats * secPerBeat * 1000 + 200);
+  state.playbackTimers.push(endTid);
+}
+
+// ===== Practice mode: listen to mic =====
+function buildExpectedSequence(piece, hand) {
+  // returns flat array of { midi, indexInHand, measureIdx, noteIdxInMeasure }
+  const seq = [];
+  let absoluteIdx = 0;
+  piece.measures.forEach((m, mi) => {
+    const arr = hand === 'rh' ? m.rh : m.lh;
+    arr.forEach((spec, ni) => {
+      const keys = Array.isArray(spec[0]) ? spec[0] : [spec[0]];
+      keys.forEach(k => {
+        seq.push({
+          midi: midiFromKey(k),
+          indexInHand: absoluteIdx,
+          measureIdx: mi,
+          noteIdxInMeasure: ni,
+          keyName: k
+        });
+      });
+      absoluteIdx++;
+    });
+  });
+  return seq;
+}
+
+function startPiecePractice() {
+  const hand = state.currentMode; // 'rh' or 'lh'
+  state.expectedSequence = buildExpectedSequence(state.currentPiece, hand);
+  state.cursorIdx = 0;
+  state.pieceCorrect = 0;
+  state.pieceMistakes = 0;
+  state.isPracticing = true;
+  state.lastNoteMatch = null;
+  state.noteStableTime = 0;
+
+  document.getElementById('action-btn').textContent = '⏹ Остановить';
+  const fb = document.getElementById('practice-feedback');
+  const firstNote = state.expectedSequence[0];
+  const cap = noteRuFromMidi(firstNote.midi);
+  fb.textContent = `Сыграй: ${cap}`;
+  fb.className = 'feedback-line';
+
+  // Highlight first note
+  renderPieceSheet(state.currentPiece, hand === 'rh' ? firstNote.indexInHand : -1, hand === 'lh' ? firstNote.indexInHand : -1);
+
+  startPitchDetection(handlePiecePitch);
+}
+
+function noteRuFromMidi(midi) {
+  const n = midiToName(midi);
+  return NOTE_RU_CAP[n.letter] + (n.full.length > 1 ? '♯/♭' : '');
+}
+
+function handlePiecePitch(midi, hz) {
+  if (!state.isPracticing || !state.expectedSequence.length) return;
+  const expected = state.expectedSequence[state.cursorIdx];
+  if (!expected) return;
+
+  const monitor = document.getElementById('pitch-monitor');
+  if (midi > 0) {
+    const n = midiToName(midi);
+    monitor.textContent = `Слышу: ${NOTE_RU_CAP[n.letter]} (${hz.toFixed(0)} Гц)`;
+  } else {
+    monitor.textContent = '';
+  }
+
+  if (midi < 0) {
+    state.lastNoteMatch = null;
+    state.noteStableTime = 0;
+    return;
+  }
+
+  // Match by pitch class (any octave)
+  const expectedPC = expected.midi % 12;
+  const actualPC = midi % 12;
+
+  if (expectedPC === actualPC) {
+    if (state.lastNoteMatch === midi) {
+      if (performance.now() - state.noteStableTime > 220) {
+        // accept!
+        advancePieceCursor();
+      }
+    } else {
+      state.lastNoteMatch = midi;
+      state.noteStableTime = performance.now();
+    }
+  } else {
+    state.lastNoteMatch = midi;
+    state.noteStableTime = performance.now();
+    // soft wrong message
+    const fb = document.getElementById('practice-feedback');
+    const heard = NOTE_RU_CAP[midiToName(midi).letter];
+    const want = NOTE_RU_CAP[midiToName(expected.midi).letter];
+    fb.textContent = `Слышу ${heard} — нужна ${want}`;
+    fb.className = 'feedback-line warn';
+  }
+}
+
+function advancePieceCursor() {
+  state.pieceCorrect++;
+  state.cursorIdx++;
+  state.lastNoteMatch = null;
+  state.noteStableTime = 0;
+
+  if (state.cursorIdx >= state.expectedSequence.length) {
+    finishPiecePractice();
+    return;
+  }
+
+  // visual update
+  const piece = state.currentPiece;
+  const next = state.expectedSequence[state.cursorIdx];
+  renderPieceSheet(piece,
+    state.currentMode === 'rh' ? next.indexInHand : -1,
+    state.currentMode === 'lh' ? next.indexInHand : -1);
+
+  // brief positive feedback
+  const fb = document.getElementById('practice-feedback');
+  const want = NOTE_RU_CAP[midiToName(next.midi).letter];
+  const okMessages = ['Отлично!', 'Молодец!', 'Так держать!', 'Точно!', 'Здорово!'];
+  fb.textContent = `${okMessages[Math.floor(Math.random() * okMessages.length)]} Дальше: ${want}`;
+  fb.className = 'feedback-line success';
+}
+
+function stopPiecePractice() {
+  state.isPracticing = false;
+  stopPitchDetection();
+  document.getElementById('action-btn').textContent = state.currentMode === 'rh' ? '🎤 Тренировать (правая)' : '🎤 Тренировать (левая)';
+  document.getElementById('practice-feedback').textContent = 'Остановилась. Когда захочешь — продолжим!';
+  document.getElementById('practice-feedback').className = 'feedback-line';
+  document.getElementById('pitch-monitor').textContent = '';
+  renderPieceSheet(state.currentPiece);
+}
+
+function finishPiecePractice() {
+  state.isPracticing = false;
+  stopPitchDetection();
+  // Stars based on performance: how few mistakes
+  const total = state.expectedSequence.length;
+  const correct = state.pieceCorrect;
+  let stars = 1;
+  // here we use cursor as proxy — they got all notes since cursor advances only on correct
+  // mistakes count would need tracking; stars based on completion mostly
+  stars = 3; // completed
+  const prev = state.pieceStars[state.currentPiece.id] || 0;
+  state.pieceStars[state.currentPiece.id] = Math.max(prev, stars);
+  saveProgress();
+  recalcStars();
+
+  const fb = document.getElementById('practice-feedback');
+  fb.innerHTML = `🎉 Молодец! Ты сыграла всю пьесу! ${'⭐'.repeat(stars)}`;
+  fb.className = 'feedback-line success';
+  document.getElementById('action-btn').textContent = 'Сыграть ещё раз';
+}
+
+// ============================================================
+// SCALES SECTION
+// ============================================================
+function renderScalesList() {
+  const grid = document.getElementById('scales-grid');
+  grid.innerHTML = '';
+  SCALES.forEach((s, idx) => {
+    const stars = state.scaleStars[s.id] || 0;
+    const card = document.createElement('div');
+    card.className = 'item-card' + (stars > 0 ? ' completed' : '');
+    card.innerHTML = `
+      <div class="item-icon">♪</div>
+      <div class="item-info">
+        <h3>${s.name}</h3>
+        <p>${s.info}</p>
+      </div>
+      <div class="item-stars">${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}</div>
+    `;
+    card.addEventListener('click', () => openScale(s));
+    grid.appendChild(card);
+  });
+}
+
+function openScale(scale) {
+  state.currentScale = scale;
+  state.scaleSeq = [...scale.notes, ...scale.notes.slice().reverse().slice(1)].map(midiFromKey);
+  state.scaleCursor = 0;
+  state.scalePracticing = false;
+  state.scaleTempoPct = 100;
+  document.getElementById('scale-title-el').textContent = scale.name;
+  document.getElementById('scale-sub-el').textContent = scale.info;
+  document.getElementById('scale-tempo-display').textContent = '100';
+  document.getElementById('scale-tempo-slider').value = 100;
+  document.getElementById('scale-action-btn').textContent = '▶ Послушать';
+  document.getElementById('scale-feedback').textContent = '';
+  document.getElementById('scale-feedback').className = 'feedback-line';
+  buildScaleKeyboard();
+  showScreen('scale-detail');
+  setTimeout(() => renderScaleSheet(scale), 50);
+}
+
+function buildScaleKeyboard() {
+  const kb = document.getElementById('scale-keyboard');
+  kb.innerHTML = '';
+  const scale = state.currentScale;
+  scale.notes.forEach((noteKey, i) => {
+    const m = midiFromKey(noteKey);
+    const n = midiToName(m);
+    const ru = NOTE_RU_CAP[n.letter];
+    const finger = scale.fingering[i];
+    const btn = document.createElement('button');
+    btn.className = 'key white';
+    btn.dataset.midi = m;
+    btn.innerHTML = `<span class="finger">${finger}</span><span class="ru">${ru}</span>`;
+    btn.addEventListener('click', () => {
+      ensureAudio();
+      playMidi(m, 0.5, 0);
+    });
+    kb.appendChild(btn);
+  });
+}
+
+function onScaleAction() {
+  // listen mode for scale
+  if (state.scalePracticing) {
+    stopScalePractice();
+    return;
+  }
+  ensureAudio();
+  const bpm = 100 * (state.scaleTempoPct / 100);
+  const secPerNote = 60 / bpm;
+  state.scaleSeq.forEach((midi, i) => {
+    playMidi(midi, secPerNote * 0.9, i * secPerNote);
+  });
+  document.getElementById('scale-feedback').textContent = '🎵 Слушаю с тобой...';
+  document.getElementById('scale-feedback').className = 'feedback-line success';
+  setTimeout(() => {
+    document.getElementById('scale-feedback').textContent = '';
+  }, state.scaleSeq.length * secPerNote * 1000 + 500);
+}
+
+function startScalePractice() {
+  if (!state.micGranted) {
+    document.getElementById('perm-overlay').classList.add('active');
+    return;
+  }
+  state.scalePracticing = true;
+  state.scaleCursor = 0;
+  state.lastNoteMatch = null;
+  state.noteStableTime = 0;
+  highlightScaleKey(state.scaleSeq[0]);
+  const fb = document.getElementById('scale-feedback');
+  const firstName = NOTE_RU_CAP[midiToName(state.scaleSeq[0]).letter];
+  fb.textContent = `Сыграй: ${firstName}`;
+  fb.className = 'feedback-line';
+  startPitchDetection(handleScalePitch);
+}
+
+function stopScalePractice() {
+  state.scalePracticing = false;
+  stopPitchDetection();
+  document.querySelectorAll('#scale-keyboard .key').forEach(k => k.classList.remove('highlight'));
+  document.getElementById('scale-feedback').textContent = '';
+  document.getElementById('scale-feedback').className = 'feedback-line';
+}
+
+function highlightScaleKey(midi) {
+  document.querySelectorAll('#scale-keyboard .key').forEach(k => {
+    const km = parseInt(k.dataset.midi, 10);
+    k.classList.toggle('highlight', (km % 12) === (midi % 12));
+  });
+}
+
+function handleScalePitch(midi, hz) {
+  if (!state.scalePracticing) return;
+  const expected = state.scaleSeq[state.scaleCursor];
+  if (midi < 0) {
+    state.lastNoteMatch = null; state.noteStableTime = 0; return;
+  }
+  if ((midi % 12) === (expected % 12)) {
+    if (state.lastNoteMatch === midi && performance.now() - state.noteStableTime > 200) {
+      // advance
+      state.scaleCursor++;
+      state.lastNoteMatch = null;
+      if (state.scaleCursor >= state.scaleSeq.length) {
+        finishScale();
+        return;
+      }
+      const next = state.scaleSeq[state.scaleCursor];
+      const nextName = NOTE_RU_CAP[midiToName(next).letter];
+      const fb = document.getElementById('scale-feedback');
+      fb.textContent = `Хорошо! Дальше: ${nextName}`;
+      fb.className = 'feedback-line success';
+      highlightScaleKey(next);
+    } else if (state.lastNoteMatch !== midi) {
+      state.lastNoteMatch = midi;
+      state.noteStableTime = performance.now();
+    }
+  } else {
+    state.lastNoteMatch = midi;
+    state.noteStableTime = performance.now();
+  }
+}
+
+function finishScale() {
+  state.scalePracticing = false;
+  stopPitchDetection();
+  const stars = 3;
+  const prev = state.scaleStars[state.currentScale.id] || 0;
+  state.scaleStars[state.currentScale.id] = Math.max(prev, stars);
+  saveProgress();
+  recalcStars();
+  const fb = document.getElementById('scale-feedback');
+  fb.innerHTML = `🎉 Прекрасно сыграно! ${'⭐'.repeat(stars)}`;
+  fb.className = 'feedback-line success';
+  document.querySelectorAll('#scale-keyboard .key').forEach(k => k.classList.remove('highlight'));
+}
+
+// ============================================================
+// EAR TRAINING (Echo game)
+// ============================================================
+function buildEarKeyboard() {
+  const kb = document.getElementById('ear-keyboard');
+  kb.innerHTML = '';
+  const earNotes = ['c/4','d/4','e/4','f/4','g/4','a/4','b/4','c/5'];
+  earNotes.forEach(k => {
+    const m = midiFromKey(k);
+    const n = midiToName(m);
+    const ru = NOTE_RU_CAP[n.letter];
+    const btn = document.createElement('button');
+    btn.className = 'key white';
+    btn.dataset.midi = m;
+    btn.innerHTML = `<span class="ru">${ru}</span>`;
+    btn.addEventListener('click', () => earKeyPress(m, btn));
+    kb.appendChild(btn);
+  });
+}
+
+function earKeyPress(midi, btnEl) {
+  ensureAudio();
+  playMidi(midi, 0.5, 0);
+  if (state.earState !== 'waiting') return;
+
+  const expected = state.earSequence[state.earUserPos];
+  const playedEl = document.getElementById('ear-played').children[state.earUserPos];
+
+  if ((midi % 12) === (expected % 12)) {
+    // correct
+    if (playedEl) {
+      playedEl.classList.add('correct');
+      playedEl.textContent = NOTE_RU_CAP[midiToName(midi).letter];
+    }
+    state.earUserPos++;
+    if (state.earUserPos >= state.earSequence.length) {
+      // round complete
+      state.earStreak++;
+      document.getElementById('ear-streak').textContent = state.earStreak;
+      document.getElementById('ear-status').textContent = '🎉 Молодец!';
+      document.getElementById('ear-status').className = 'ear-status repeat';
+      saveProgress();
+      recalcStars();
+      state.earState = 'done';
+      setTimeout(() => earNextRound(), 1400);
+    }
+  } else {
+    // wrong
+    if (playedEl) {
+      playedEl.classList.add('wrong');
+      playedEl.textContent = NOTE_RU_CAP[midiToName(midi).letter];
+    }
+    state.earStreak = 0;
+    document.getElementById('ear-streak').textContent = '0';
+    document.getElementById('ear-status').textContent = 'Не та нота. Слушай ещё раз.';
+    document.getElementById('ear-status').className = 'ear-status warn';
+    state.earState = 'idle';
+    document.getElementById('ear-action').textContent = 'Ещё раз';
+    setTimeout(() => earReplay(), 1200);
+  }
+}
+
+function generateEarSequence(length) {
+  const pool = [60, 62, 64, 65, 67, 69, 71, 72]; // C major scale
+  const seq = [];
+  for (let i = 0; i < length; i++) {
+    const r = pool[Math.floor(Math.random() * pool.length)];
+    seq.push(r);
+  }
+  return seq;
+}
+
+function earNextRound() {
+  state.earSequence = generateEarSequence(state.earLevel);
+  state.earUserPos = 0;
+  earPlaySequence();
+}
+
+function earReplay() {
+  state.earUserPos = 0;
+  earPlaySequence();
+}
+
+function earPlaySequence() {
+  state.earState = 'playing';
+  document.getElementById('ear-status').innerHTML = 'Слушаю <span class="ear-pulse"></span>';
+  document.getElementById('ear-status').className = 'ear-status listen';
+  document.getElementById('ear-action').textContent = 'Пропустить';
+
+  // populate placeholder dots
+  const playedEl = document.getElementById('ear-played');
+  playedEl.innerHTML = '';
+  state.earSequence.forEach(() => {
+    const span = document.createElement('span');
+    span.className = 'ear-note';
+    span.textContent = '•';
+    playedEl.appendChild(span);
+  });
+
+  ensureAudio();
+  const noteDur = 0.5;
+  state.earSequence.forEach((midi, i) => {
+    playMidi(midi, noteDur, i * (noteDur + 0.15));
+    setTimeout(() => {
+      const el = playedEl.children[i];
+      if (el) {
+        el.classList.add('played');
+        el.textContent = NOTE_RU_CAP[midiToName(midi).letter];
+      }
+    }, i * (noteDur + 0.15) * 1000);
+  });
+
+  // After all played, switch to waiting
+  setTimeout(() => {
+    state.earState = 'waiting';
+    document.getElementById('ear-status').textContent = 'Теперь повтори ↓';
+    document.getElementById('ear-status').className = 'ear-status repeat';
+    // reset note labels for replay
+    Array.from(playedEl.children).forEach((el) => {
+      el.classList.remove('played');
+      el.textContent = '?';
+    });
+  }, state.earSequence.length * (noteDur + 0.15) * 1000 + 200);
+}
+
+function onEarAction() {
+  if (state.earState === 'idle' || state.earState === 'done') {
+    earNextRound();
+  } else if (state.earState === 'playing' || state.earState === 'waiting') {
+    earReplay();
+  }
+}
+
+// Level switcher
+document.querySelectorAll('#ear-levels button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#ear-levels button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    state.earLevel = parseInt(b.dataset.level, 10);
+    state.earStreak = 0;
+    document.getElementById('ear-streak').textContent = '0';
+    document.getElementById('ear-status').textContent = 'Нажми «Начать»';
+    document.getElementById('ear-status').className = 'ear-status';
+    document.getElementById('ear-played').innerHTML = '';
+    document.getElementById('ear-action').textContent = 'Начать';
+    state.earState = 'idle';
+  });
+});
+
+// ============================================================
+// INIT
+// ============================================================
+loadProgress();
+
+// Resume audio context on first interaction (mobile autoplay policy)
+document.addEventListener('touchstart', () => {
+  if (state.audioContext && state.audioContext.state === 'suspended') {
+    state.audioContext.resume();
+  }
+}, { passive: true });
+document.addEventListener('click', () => {
+  if (state.audioContext && state.audioContext.state === 'suspended') {
+    state.audioContext.resume();
+  }
+}, { passive: true });
+
+// Re-render sheet on window resize
+let resizeTid;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTid);
+  resizeTid = setTimeout(() => {
+    if (state.currentScreen === 'piece-detail' && state.currentPiece) {
+      renderPieceSheet(state.currentPiece, -1, -1);
+    }
+    if (state.currentScreen === 'scale-detail' && state.currentScale) {
+      renderScaleSheet(state.currentScale);
+    }
+  }, 200);
+});
+</script>
+</body>
+</html>
